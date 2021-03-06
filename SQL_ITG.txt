@@ -1,0 +1,328 @@
+﻿ 1: SỬ DỤNG TRONG CÔNG TY.
+
++ Câu lênh gọi fun phải chạy khi có sự thay đổi dữ liệu bảng:
+
+select create_schema_info();
+select createdbcolumns();
+---------------------------------------------
+Đánh số tự động tăng.
+row_number() over (ORDER BY ma_kh, nam, thang) as stt
+---------------------------------------------
+Link 2 DB khác nhau : 
+_SERVER ud_char128;
+_PORT ud_char128;
+select inet_server_addr() into _SERVER;
+select inet_server_port() into _PORT;
+
+create temp table tmp_ten_gd as
+	SELECT * FROM lib.dblink('host = '||_SERVER||' port = '||_PORT||' dbname = kg_sys user = postgres password = KgP@ssitgw0rd'::text, 
+			'select ma_ct,ma_gd, ten_gd, ten_gd2 from dmmagd '::text) as ( ma_ct ud_ma ,ma_gd ud_smallint, ten_gd ud_char128,ten_gd2 ud_char128);
+---------------------------------------------
+
+@all Đây là câu lệnh tìm kiếm các function chứa đoạn text cần tìm.
+SELECT proname, proargnames, prosrc 
+ FROM pg_proc
+ WHERE prosrc ILIKE '%convert_json%';
+---------------------------------------------
+VÍ DỤ LẤY CẤU TRÚC SẢN PHẨM ĐỆ QUY POSTGRES: 
+
+WITH RECURSIVE layvtcautruc(ma_cau_truc, ma_sp, ngay_hl1, ngay_hl2, status, ma_vt, dvt, so_luong, cap_bom , ty_le_hao_phi_kt , ty_le_hong, ma_thao_tac)
+		AS (  
+			select ma_cau_truc, ma_sp, ngay_hl1, ngay_hl2, status, ma_vt, dvt, so_luong / sl_sp as so_luong, 1 AS cap_bom , ty_le_hao_phi_kt , ty_le_hong, ma_thao_tac
+			FROM dmbom1
+			WHERE case when 'TP00002' <> '' then ma_cau_truc = 'TP00002' 
+				else ma_cau_truc not in (select ma_cau_truc from dmbom) end
+				and exists (select 1 from dmbom where ma_cau_truc = dmbom1.ma_cau_truc and status  = '1')
+				and sl_sp <> 0 
+			UNION ALL
+			select a.ma_cau_truc, a.ma_sp, a.ngay_hl1, a.ngay_hl2, b.status, a.ma_vt, a.dvt, (a.so_luong / a.sl_sp) * b.so_luong as so_luong, b.cap_bom + 1 AS cap_bom , a.ty_le_hao_phi_kt , a.ty_le_hong, a.ma_thao_tac
+			FROM layvtcautruc b, dmbom1 a
+			WHERE b.ma_vt = a.ma_sp and a.sl_sp <> 0
+				and exists (select 1 from dmbom where ma_cau_truc = a.ma_cau_truc and status  = '1')
+		) 
+	SELECT 'TP00002', ma_cau_truc, ma_sp, MAX(ngay_hl1) AS ngay_hl1, MAX(ngay_hl2) AS ngay_hl2, MAX(status) AS status, ma_vt, MAX(dvt) AS dvt, 
+		sum(so_luong) so_luong, MAX(cap_bom) as cap_bom , max(ty_le_hao_phi_kt) as ty_le_hao_phi_kt , max(ty_le_hong) as ty_le_hong, '' ma_thao_tac
+	FROM layvtcautruc	
+	group by ma_cau_truc, ma_sp, ma_vt;
+-----------------------------------------------
+chuyen gia tri
+select ngay_kyluong1, ngay_kyluong2 into _ngay_hl1, _ngay_hl2 from dmkyluong where  ma_kyluong = pky_luong ;
+---------------------------------
+Câu lệnh tạo Index: 	EXECUTE 'CREATE INDEX tmp_' || _ma_Groupby2  || ' ON tmp( '|| _ma_Groupby2 || ')';
+-----------------------------------------------
+hàm lấy ngày giờ hiện tại trong postgres :
+SELECT CURRENT_TIME;
+Result: 14:39:53.662522-05
+
+SELECT CURRENT_DATE;
+Result: 2001-12-23
+
+SELECT CURRENT_TIMESTAMP;
+Result: 2001-12-23 14:39:53.662522-05
+
+SELECT CURRENT_TIMESTAMP(2);
+Result: 2001-12-23 14:39:53.66-05
+
+SELECT LOCALTIMESTAMP;
+Result: 2001-12-23 14:39:53.662522
+
+ÉP KIỂU TIME:
+	VD:
+select TO_CHAR(ngay_bd :: DATE, 'dd/mm/yyyy')||' đến '|| TO_CHAR(ngay_kt :: DATE, 'dd/mm/yyyy')  from dmctck
+
+---------------------------------------------
+Lấy khoảng thơi gian chạy của câu lệnh trong potgres
+
+	Khai báo t là khoảng thời gian hiện tại:	t timestamptz := clock_timestamp();
+
+	RAISE NOTICE '2 =%', clock_timestamp() - t;
+=============================================
+
+PHẦN 2: GOOGLE
+---------------------------------------------
+right(_max_so_ct,5): lấy 5 ký tự từ phải qua trái.
+left(_str,4) : Lấy 4 ký tự từ trái qua phải.
+
+Link trang sử lý chuỗi: https://w3resource.com/PostgreSQL/translate-function.php
+---------------------------------------------
+0: Gán giá trị cho biến sử dụng trong Function.
+a int := 0  gán giá trị a = 0 
+int:: b  ép kiểu cho b = int
+''::character varying a
+r : record : kieu type bất kỳ.
+---------------------------------------------
+CÁC MỆNH ĐỀ HAY DÙNG.
++ COALESCE
+VD
+	SELECT COALESCE(NULL, NULL, NULL, 'W3Schools.com', NULL, 'Example.com');
+	-> Trả về W3Schools.com -> Trong tập các giá trị trả về giá trị không Null
+	
+
++ EXTRACT
+	  VD EXTRACT (year FROM '2020-01-01'::date) 
+	-> Trả về 2020.
+	     EXTRACT (month FROM '2020-01-01'::date) 
+	-> Trả về 01
+	     EXTRACT (day FROM '2020-01-10'::date) 
+	-> Trả về 10
+	https://www.postgresqltutorial.com/postgresql-extract/
+
++ SERIAL : tự động tăng .
+	  VD ma_vt serial PRIMARY KEY : 
+	+ tạo ma_vt là khóa chính tự động tăng.
+
++ LIMIT : 
+	  VD limit 10: trả về 10 giá trị từ vị trí 1-> 10.
+	- limit 10 offset 10: trả về 10 giá trị bắt đầu từ vị trí 11.
+-> là mệnh đề giới hạn số lượng các giá trị lấy ra. 
+
++ FETCH : 
+	  VD : select ma_vt from dmvt FETCH FIRST 5 ROW ONLY : 
+	+ Trả về năm dòng đầu tiên từ vị trí 1:
+	 
+	  VD select ma_vt from dmvt OFFSET 5 ROWS FETCH FIRST 5 ROWS ONLY 
+	+ trả về 5 dòng tiếp theo từ vị trí số 5.
+-> FETCH : Tương tự limit nhưng là mệnh đề chuẩn của SQL đưa ra sử dụng.
+
++ DISTINCT : 
+	 VD select DISTINCT ma_vt from dmvt : 
+	+ Trả về danh sách các ma_vt không trùng nhau.
+
++ LIKE : 
+	 VD select * from dmvt where ma_vt LIKE '%value%'.
+	 VD sletct * from dmvt where ma_vt LIKE '_value%'.
+
+	+ LIKE 'value%' 	-> Trả về các giá trị bắt đầu bằng value.
+	+ LIKE '%value'		-> Trả về các giá trị kết thúc bằng value.
+	+ LIKE '%value%'	-> Trả về các giá trị chưa value.
+	+ LIKE '_value%'	-> Trả về giá trị có value ở vị trí thứ 2. Tương tự ==> vị trí thứ x ___.
+	+ LIKE 'value%%'	-> Trả về giá trị bằng bắt đầu bằng value và có ít nhất 2 ký tự.
+	+ LIKE 'a%b'		-> Trả về giá trị bắt đầu bằng a và kết thúc bằng b.
+
++ IS NULL && IS NOT NULL: 
+	select * from dmvt where ma_vt IS NULL.
+	+ Để kiểm tra một giá trị với NULL ta sử dụng toán tử IS NULL hoặc IS NOT NULL. Mọi phép só sánh = NULL trong mệnh đề where đều = FALSE.
+
++ SELF-JOIN : Tự sử dụng chính bảng đó khi sử dụng các mệnh đề LEFTJOIN, RIGHTJOIN,INERJOIN.... :
+	VD select ma_vt from dmvt as a INNERJOIN dmvt as b on a.ma_vt = b.dvt;
+	-> trả về các ma_vt có ma_vt = dvt . sử dụng tương tự như trên 2 bảng khác nhau.
+
++ CROSS JOIN : Mệnh đề trả về tích hai bảng.
+		bang1: colum_x
+			A
+			B
+		bang2: column_y
+			C
+			D
+	VD: select * from bang1 CROSS JOIN bang2 hoặc select * from bang1,bang2
+	-> Trả về.
+			colum_x    column_y
+			A		C
+			B		C
+			A		D
+			B		D
+
++ NATURAL JOIN :
+ 
+SELECT * FROM products NATURAL JOIN categories;
+trả về các tổng hợp các giá trị có trùng nhau: VD https://www.postgresqltutorial.com/postgresql-natural-join/ 
+
++ UNION && UNION ALL 
+	 VD: Select ma_vt from dmvt
+		UNIUN 
+	     Select ma_vt from dmkho
+	-> UNION: trả về tổng hợp các giá trị và loại bỏ các giá trị trùng.
+	-> UNION ALL: trả về tổng hợp các giá trị và không loại bỏ các giá trị trùng.
+lưu ý: Số cột, kiểu dữ liệu trả về giữa hai câu select phải giống nhau hoặc kiểu dữ liệu phải bao hàm nhau VD. float && int => trả về kiểu float.
+
++ INTERSECT 
+	VD select ma_vt from dmvt 
+		INTERSECT 
+	   select ma_vt from dmlo
+	-> INTERSECT Trả về các rows ma_vt có giá trị giống nhau và không lặp lại
+
++ EXCEPT 
+	VD select ma_vt from dmvt
+		EXCEPT
+	   select ma_vt from dmlo
+	-> EXCEPT trả về tất cả các ma_vt trong bảng dmvt và không chưa trong bảng dmlo. (Loại bỏ các mã ma_vt trùng nhau và các ma_vt của dmlo)
+
++ GROUPING SETS : 
++ CUBE		
++ ROLLUP 
+	-> mệnh đề con của GROUP BY: https://www.postgresqltutorial.com/postgresql-rollup/
+
++ ANY : ANY tương đương với toán tử in 
+
++ ALL : 
+	VD : SELECT film_id, title, length
+		FROM 	film
+			WHERE	length > ALL (
+		SELECT	ROUND(AVG (length),2)
+            	FROM	film	
+			GROUP BY	rating )
+			ORDER BY	length;
+	-> Trả về các dòng có giá trị length lớn hơn tất cả các giá trị leng trong bảng con.
++ HAVING
+VD:	
+	select sum(so_luong) from dmvt where ma_vt ='xx' group by ma_vt HAVING sum(so_luong) > 0
+	-> 
+
+	Vòng FOR: VD
+for i in 1..25 LOOP
+   insert into playtime.meta_random_sample
+   select i, ID
+   from   tbl
+   order  by random() limit 15000
+end loop
+---------------------------------------------
+CÁC CÚ PHÁP TẠO MỚI 
+
++ Tạo Mới Bảng 
+VD 
+	CREATE TABLE accounts (
+		user_id serial PRIMARY KEY,
+		username VARCHAR ( 50 ) UNIQUE NOT NULL,
+		password VARCHAR ( 50 ) NOT NULL,
+		email VARCHAR ( 255 ) UNIQUE NOT NULL,
+		created_on TIMESTAMP NOT NULL,
+        	last_login TIMESTAMP 
+		);
+	-> UNIQUE : Trong bảng trên cột 1 giá trị chỉ được xuất hiện một lần.
++ Create table AS 
+
++ SERIALL : 
+VD : 
+	CREATE TABLE fruits(
+  		id SERIAL PRIMARY KEY,
+   		name VARCHAR NOT NULL
+				);
+	->id Tự động tăng 1 đơn vị.
+
++ SEQUENCE 
+
+VD: 
+		CREATE SEQUENCE mysequence
+			INCREMENT 5
+			START 100;
+	->	mysequence Tự động tăng thêm 5 bắt đầu từ 100
++ ALTER 
+VD: 
+	ALTER table dmvt ADD COLUMN ma_kho int;
+	-> Thêm cột mới vào bảng dmvt
+VD: 
+	ALTER table dmvt DROP COLUMN ma_kh;
+	-> Xóa cột mã khách.
+VD:
+	Alter table dmvt RENAME COLUMN ma_vt TO ma_hang;
+	-> Đổi tên cột ma_vt -> ma_hang.
+VD: 
+	ALTER TABLE table_name 
+		ALTER COLUMN column_name 
+		[SET DEFAULT value | DROP DEFAULT];
+	-> Gán giá trị mặc định cho cột, xóa gán giá trị mặc định cho cột.	
+VD: 	
+	ALTER TABLE dmvv
+		ALTER COLUMN ten_vv type ud_char128;
+	-> Đổi kiểu dữ liệu.
++ CHECK CONSTRAINT : https://www.postgresqltutorial.com/postgresql-check-constraint/
+ALTER TABLE dmnangsuatct DROP CONSTRAINT dmnangsuatct_pkey;
+ALTER TABLE dmnangsuatct ADD CONSTRAINT dmnangsuatct_pkey PRIMARY KEY(ma_kyluong, ma_bp, ma_to, ma_nv, ma_cd, ma_vt, ma_nh, ngay_hl1,thuviec_yn);
+
+---------------------------------------------
+
+1: Tạo Domain
+- Tao Domain: tên định danh chung của biến.
+create domain ud_ma as varchar(20)
+create domain ud_time as time
+create domain ud_float as float
+- Xóa Domain
+Drop domain ud_ma;
+
+----------------------------------------------
+2: Câu lệnh tạo bảng 
+create table test_table
+(
+
+)
+
+----------------------------------------------
+3: Tạo type và Function
+3.1: Type 
+Type là các thuộc tính trả về được sử dụng của một hoặc nhiều function:
+- create type test_return as 
+(
+
+)
+create type 
+
+====================================================
+NOTE :
++ Nối giá trị trả về từ 2 cột của một bảng .
+	VD : Select ma_vt ||' và '|| ten_vt as mavaten from dmvt .
+	-> trả về : ma_vt và ten_vt trên cùng một cột.
+
++ Vô hiệu hóa trigger:
+	IF(Exists(Select 1 From information_schema.triggers where event_object_table = 'cdvt' And trigger_name = 'tg_cdvt'))THEN
+		ALTER TABLE cdvt DISABLE TRIGGER tg_cdvt;
+----------------------------------------------------
+Cấu lệnh lấy hàm post cho các phiếu cần cập nhật lại trạng thái.
+SELECT 'SELECT postit('''||stt_rec||''');' FROM ph85 where ngay_duyet = '20201111' AND nguoi_duyet = 9 AND (gio_duyet between '15:55:00' AND '16:01:00')
+----------------------------------------------------
+Câu lệnh lấy funtion đang chạy trong posttgres
+
+SELECT datname, pid, client_addr, state, query, age(clock_timestamp(), query_start) AS age 
+FROM pg_stat_activity
+WHERE state <> 'idle' 
+    AND query NOT LIKE '% FROM pg_stat_activity %' 
+ORDER BY age;
+-----------------------------------------------------
+Lấy dữ liệu lưu log sửa xóa ... của chứng từ data sys
+select * from logdata where data::text like '%A1000000010794141SO1%'
+
+--------------------------------
+SELECT datname, 'SELECT pg_cancel_backend('||pid||');',client_addr  IP_Client, query, age(clock_timestamp(), query_start) AS time
+FROM pg_stat_activity
+WHERE state <> 'idle' 
+    AND query NOT LIKE '% FROM pg_stat_activity %' 
+ORDER BY time;

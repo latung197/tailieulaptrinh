@@ -1,0 +1,779 @@
+﻿Sử lý ẩn côt , tiêu đề, style trong chứng từ : 
+VD: 
+                voucherlib.voucherlib.ListGridDetails[0].Cols["gia_nt2"].Caption = FA.Global.Message.Str("032");
+                voucherlib.voucherlib.ListGridDetails[0].Cols["tien_nt2"].Style = voucherlib.voucherlib.ListGridDetails[0].Styles["TIEN"];
+
+
+===========================================
+Bảng userrights lưu use đăng nhập : kiếm tra user đang đăng nhập trong code : dùng Session.CurrUserId lấy ra mã user. 
+=======================================================
+Thư viện lấy tên công ty ...
+
+FA.Global.Licence
+==================================
+Thư viện: FA.global.....
+=============================================
+bug xuyên: 
+peroperty: command line dat sys id cua code can bug vao
+============================================================
+form list ko  hien phair resset vs hien: Gán lại giá trị frmlist.drv[""] = Dưới hàm save
+================================================================
+check dieu kien trong khai báo importexcel:
+
+valid = 0: ko check, 1 check ko ton tai: 2 check đã tồn tại.
+field_ref: tên khóa cần check tại bảng check
+table_ref: tên bảng kiểm tra. 
+
+--------------------------------------------------------------------
+
+doDmKh.SetDataRelation("ten_nvbh", "ten_nvbh", "dmnvbh", "ma_nvbh", "dmnvbh", "ma_nvbh", "dmkh", null, null, false);
+===============================================
+LẤY NGÀY THÁNG : VD BÁO CÁO: inbcktnllk :LẤY TUẦN
+lẤY THÁNG : qctllkqtsp.exe
+===============================================================================================
+xuất excel trong báo cáo xoay khai báo trong reports
+-=>  TRONG báo cáo muốn hiển thị liên phiếu tương ứng . dataset trả về phải có stt_rec và ma_ct của phiếu
+===============================================================================================
+lẤY NGÀY BẮT ĐẦU CỦA THÁNG VÀ  NGÀY KẾT THÚC THÁNG: 
+select  period_start(ngay ket thuc: period_end) into start_month  from date where period_type='M' and (date_part('year',period_start) = pnam or date_part('year',period_end) = pnam) and period_name =  i :: character varying;
+- Ngày bắt đầu tuần : 
+select  period_start into start_week from date where period_type='W' and (date_part('year',period_start) =pnam or date_part('year',period_end) = pnam) and period_name = i::character varying ;
+
+------------------------------------------------------------
+VÍ DỤ LẤY CẤU TRÚC SẢN PHẨM ĐỆ QUY POSTGRES: 
+
+WITH RECURSIVE layvtcautruc(ma_cau_truc, ma_sp, ngay_hl1, ngay_hl2, status, ma_vt, dvt, so_luong, cap_bom , ty_le_hao_phi_kt , ty_le_hong, ma_thao_tac)
+		AS (  
+			select ma_cau_truc, ma_sp, ngay_hl1, ngay_hl2, status, ma_vt, dvt, so_luong / sl_sp as so_luong, 1 AS cap_bom , ty_le_hao_phi_kt , ty_le_hong, ma_thao_tac
+			FROM dmbom1
+			WHERE case when 'TP00002' <> '' then ma_cau_truc = 'TP00002' 
+				else ma_cau_truc not in (select ma_cau_truc from dmbom) end
+				and exists (select 1 from dmbom where ma_cau_truc = dmbom1.ma_cau_truc and status  = '1')
+				and sl_sp <> 0 
+			UNION ALL
+			select a.ma_cau_truc, a.ma_sp, a.ngay_hl1, a.ngay_hl2, b.status, a.ma_vt, a.dvt, (a.so_luong / a.sl_sp) * b.so_luong as so_luong, b.cap_bom + 1 AS cap_bom , a.ty_le_hao_phi_kt , a.ty_le_hong, a.ma_thao_tac
+			FROM layvtcautruc b, dmbom1 a
+			WHERE b.ma_vt = a.ma_sp and a.sl_sp <> 0
+				and exists (select 1 from dmbom where ma_cau_truc = a.ma_cau_truc and status  = '1')
+		) 
+	SELECT 'TP00002', ma_cau_truc, ma_sp, MAX(ngay_hl1) AS ngay_hl1, MAX(ngay_hl2) AS ngay_hl2, MAX(status) AS status, ma_vt, MAX(dvt) AS dvt, 
+		sum(so_luong) so_luong, MAX(cap_bom) as cap_bom , max(ty_le_hao_phi_kt) as ty_le_hao_phi_kt , max(ty_le_hong) as ty_le_hong, '' ma_thao_tac
+	FROM layvtcautruc	
+	group by ma_cau_truc, ma_sp, ma_vt;
+====================================================================
+format kiểu ngày hiển thị dạng: trong crytal: vidu: CACTPT1 : hafuco                                 Ngày …… tháng …… năm 201….  
+====================================================================
+ép kiểu số sang chữ trong crytalrepost : CSTR({field1})
+====================================
+Mẫu tính Trung bình tuần vt : sobctvtcc HAFUCO
+==========================================================
+
+======================================
+them các dữ liệu logo ... vào dataset
+reportlib.drReportData = voucherlib.voucherlib.drvPh.Row;
+
+================================================
+Ghim cột
+odirformlib.grdLookUp.AllowFreezing = AllowFreezingEnum.Both;
+            odirformlib.grdLookUp.Cols.Frozen = 8;
+            odirformlib.grdLookUp.Rows.Frozen = 1;
+============================================
+CÁCH SỬ DỤNG DATAROW : VD
+ DataRow _drv = Sql.GetRow(Public.cn,"dmctdf","ma_ct = 'RQ2' and ma_dvcs = '"+Session.DfUnit+"'");
+            if (_drv != null)
+            {
+                _curGridRow["ma_ck"] = Public.Get_String(_drv["ma_ck"]);
+                _curGridRow["ma_thue"] = Public.Get_String(_drv["ma_thue"]);
+            }
+
+Cách 2 : Mô tả ví dụ lấy dữ liệu vào dataset
+
+ strSQL = "SELECT * FROM ct46a WHERE stt_rec ='" + voucherlib.voucherlib.curVoucherID + "' limit 1";
+                Sql.SQLRetrieve(Public.cn, strSQL, "ct46a", ref dsDataSet);
+                dtCt = dsDataSet.Tables["ct46a"];
+                dvCt = new DataView(dtCt);
+                foreach (DataRowView drv in dvCt)
+                {
+                    ma_kh_i = Public.Get_String(drv["ma_kh_i"]);
+                    ten_kh_i = Public.Get_String(Sql.SQLExecuteScalar(Public.cn,"select * from ten_kh from dmkh where ma_kh='" + ma_kh_i + "'"));
+
+                    ten_tk = Public.Get_String(drv["ten_tk_nh"]);
+                    tk_nh = Public.Get_String(drv["tk_nh"]);
+                    ten_nh = Public.Get_String(Sql.SQLExecuteScalar(Public.cn, "select ten_nh from dmnh where ma_nh = (select ma_nh from dmtkkh where tk_nh='" + tk_nh + "' and ma_kh='" + Public.Get_String(drv["ma_kh_i"]) + "')"));
+                    swift_code = Public.Get_String(Sql.GetValue(Public.cn, "dmtkkh", "swift_code", "tk_nh='" + tk_nh + "' and ma_kh='" + Public.Get_String(drv["ma_kh_i"]) + "'"));
+                }
+
+-----------------------------------------------------------
+VD: Mẫu intem : glbcintemphts: HAFUCO
+-----------------------------------------------
+string _edit_byword = String.Join("", _by_word.Split( ','));// Loại bỏ dấy , trong chuỗi
+
+-----------------------------------------------------------------
+386 hafuco : fun: gettranscode trong thư viện khi đổi dự án cần đổi lại cổng trong fun
+===================================================
+ importexcel trong chứng từ : mẫu lầy từ - SOCTGKH hafcuco
+
+Bước 1: copy formOpenexcel ()
+Bước 2: copy class excel()
+Bước 3: copy hàm RetrieveItemsFromExcel : hàm gán trong formmenu để lên chức hiện formOpenexcel:
+Bước 4: cpoy hàm : CreateImport(): hàm đọc dữ liệu rồi gán vào chứng từ.
+chus y: them thu vien vaf using
+-----------------------------------------------------
+
+Sửa constraint trong postgres:
+
+ALTER TABLE hrnvbhxh DROP CONSTRAINT hrnvbhxh_pkey;
+ALTER TABLE hrnvbhxh ADD CONSTRAINT hrnvbhxh_pkey PRIMARY KEY (ma_nv, ngay_bd, ngay_kt);
+--------------------------------
+fun vidu về tính tồn: insdkklo1  : GTA
+------------------------------------
+Ví dụ mẫu in chọn giá trị in checkbox
+ví dụ về imporrt file excel trong chứng từ dùng fun có json. :fun inctkk1 dự án GTA.
+-------------------------------------------------
+Tô màu mẫu in excel : file poctdg1.elsx dự án hafuco.
+
+ITG@!@#
+chú ý khi thay đổi dữ liệu trên frmlist phải để beginedit và endedit: vd thay doi tag:
+		frmList.dv[i].BeginEdit();
+                frmList.dv[i]["tag"] = lType;
+                frmList.dv[i].EndEdit();
+--------------------------
+đọc dự liêu bên sys từ data
+    create temp table bangtam1 as SELECT sysid,ma_ct
+	FROM lib.dblink('port=5438 dbname=''hafuco_sys'' user=postgres password=ITG@!@#'::text, 'SELECT sysid,ma_ct FROM command')
+	as r(sysid ud_ten,ma_ct ud_ma_ct);
+--------------------------------------------
+chuyen gia tri
+select ngay_kyluong1, ngay_kyluong2 into _ngay_hl1, _ngay_hl2 from dmkyluong where  ma_kyluong = pky_luong ;
+---------------------------------
+ALTER TABLE dmnangsuatct DROP CONSTRAINT dmnangsuatct_pkey;
+ALTER TABLE dmnangsuatct ADD CONSTRAINT dmnangsuatct_pkey PRIMARY KEY(ma_kyluong, ma_bp, ma_to, ma_nv, ma_cd, ma_vt, ma_nh, ngay_hl1,thuviec_yn);
+---------------------
+lưu ý: cột user_id0, user_id2 đổi thành tên thì khai báo lại trong bảng thành user_name0, user_id2.
+select create_schema_info();
+select createdbcolumns();
+   coalesce (null,null, 0)/  trả về giá trị khác null. vidu tren tra về 0
+Ẩn tab : this.tabCt.TabPages.Remove(this.tabpageCt_page1);
+--------
+lưu ý: cột user_id0, user_id2 đổi thành tên thì khai báo lại trong bảng thành user_name0, user_id2.
+
+copy $(TargetPath) ..\..\..\output_Hafuco\$(TargetFileName)
+
+chuyen du lieu tu fun vao dataset
+ FA.Global.Sql.SQLRetrieve(Public.cn, strSQL, "Crmbclailoda", ref dsDataSet);
+--them dot vao banh trong dataset : bidu them 2 cot gia vaf phan_suong
+    dsPrint.Tables["ct81th"].Columns.Add("ten_phan_xuong", typeof(string));
+    dsPrint.Tables["ct81th"].Columns.Add("gia", typeof(decimal));
+lookup --===============================================
+                    LookUpLib luMa_vt = new LookUpLib(_ma_noi_nhan, true, true, "ma_kh = '" + voucherlib.voucherlib.drvPh["ma_kh"] + "'", "dmnoinhan");
+                    if (luMa_vt.drvReturn != null)
+                    {
+
+                        _curGridRow["ma_noi_nhan"] = _ma_noi_nhan = Public.Get_String(luMa_vt.drvReturn["ma_noi_nhan"]);
+
+                    }
+
+selectlip :==============================
+            Selectlib slTk_no = new Selectlib(txtTk_No, "dmtk");
+            frmList.drv["tk_no"] = txtTk_No.Value = slTk_no.ListReturn;
+--------------------------------------------
+câu lệnh duyệt dữ liệu trong trong grid
+foreach (DataRowView drv in dvdmthung1)
+                        {
+                            if(Public.Get_String(drv["ma_lo"])==_ma_lo)
+                            {
+                                d++;
+                            }
+                        }
+                        if(d!=0)
+                        {
+                            Msg.Alert("Trùng mã lô");
+                            return;
+                        }
+
+                        _curGridRow["ma_lo"] = _ma_lo; 
+                        _curGridRow.EndEdit();
+
+-------------------------------------------------------
+1 Thêm dữ liệu vào combobox: 
+Cách 1: Khai báo trong message:
+Cách 2:
+Gán dữ liệu vào trong comnobox bằng cách thêm vào bảng .
+ private void Grid_DBindingCbo()
+        {
+            DataTable dt_loai_dh = new DataTable();
+            dt_loai_dh.Columns.Add("id", typeof(string));
+            dt_loai_dh.Columns.Add("name", typeof(string));
+            switch (Public.M_LAN) // kiểm tra ngôn ngữ 
+            {
+                case "V":
+                    dt_loai_dh.Rows.Add("1", "1 - Hàng MP");
+                    dt_loai_dh.Rows.Add("2", "2 - Hàng NM");
+                    dt_loai_dh.Rows.Add("3", "3 - Hàng dự phòng tồn kho");
+                    dt_loai_dh.Rows.Add("4", "4 - Hàng bù NG");
+                    dt_loai_dh.Rows.Add("6", "6 - Hàng SP");
+                    dt_loai_dh.Rows.Add("7", "7 - Bù NG nội bộ");
+                    break;
+                case "E":
+                    dt_loai_dh.Rows.Add("1", "1 - MP goods");
+                    dt_loai_dh.Rows.Add("2", "2 - NM goods");
+                    dt_loai_dh.Rows.Add("3", "3 - Inventory");
+                    dt_loai_dh.Rows.Add("4", "4 - Goods offset MP");
+                    dt_loai_dh.Rows.Add("6", "6 - SP goods");
+                    dt_loai_dh.Rows.Add("7", "7 - Internal NG compensation");
+                    break;
+                default:
+                    break;
+            }
+            txtLoai_lsx.DisplayMember = "name"; .. set hien thị combobox là name
+            txtLoai_lsx.ValueMember = "id";// set cot valu là id 
+            txtLoai_lsx.DataSource = dt_loai_dh;
+            txtLoai_lsx.SelectedIndex = 0;
+            
+        }
+
+	txtLoai_lsx.selectedvalues.tostring(): lấy dữ liệu values 
+	txtloai_lsx.selectedindex: lấy dòng chọn 
+
+------------------------------------------------------------------------------
+Thêm vào combobox bằng câu lệnh sql
+  LookUpLib luMa_dvcs = new LookUpLib(this.txtMa_dvcs, lblTen_dvcs, false, true, "dmdvcs");
+            string sql = "SELECT status AS id, CASE WHEN '" + Public.M_LAN + "' = 'V' THEN statusname ELSE statusname2 END AS name FROM dmttct WHERE ma_ct = 'PD1' AND status IN('1','2','3') ORDER BY status";
+            SoreportLib.Control.Init_Combobox(txtStatus, Public.syscn, "dmttct", sql, "1");
+
+----------------------------------------------------------------------------------------------
+lookup 
+
+ string _ma = Public.Get_String(txtMa_may.Value);
+            string _oldma = Public.Get_String(txtMa_may.OldValue);
+
+            if (String.Compare(_ma, _oldma) != 0)
+            {
+                LookUpLib luhttt = new LookUpLib(_ma, true, true, "1=1", "dmmay");
+                if (luhttt.drvReturn != null)
+                {
+                    txtMa_may.Value = Public.Get_String(luhttt.drvReturn["ma_may"]);
+                    txtTen_may.Value = Public.Get_String(luhttt.drvReturn["ten_may"]);
+                   
+                }
+            }
+-----------------------------------------------------------------------------------
+1 tao don 
+2 khai bao formmenu
+3 khia bao llistinfo, gridinfo 
+4 thuc hien doi sysid = sysid moi, lay du lieu song phai doi lai nhu ban dau	
+
+-------------------------------------------------------------------
+import trong code :
+
+    private void button1_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string fileReport = Public.Rpts_Path + "Template_Dmnangsuat.xls";
+                System.Diagnostics.Process.Start(fileReport);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            if (Public.Get_String(txtMa_bp.Value) == "")
+            {
+                Msg.Confirm("Bạn phải nhập Mã bộ phận trước khi Import?");
+                txtMa_bp.Focus();
+                return;
+            }
+            OpenFileDialog dlg = new OpenFileDialog();
+            dlg.Filter = "Excel files|*.xls;*.xlsx";
+            dlg.InitialDirectory = Public.AppPath;
+
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    System.Globalization.CultureInfo oldCI = System.Threading.Thread.CurrentThread.CurrentCulture;
+                    System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+                    object valueMissing = System.Reflection.Missing.Value;
+                    Microsoft.Office.Interop.Excel.Application oExcel = new Microsoft.Office.Interop.Excel.Application();
+                    Excel.Application xlApp;
+                    Excel.Workbook xlWorkBook;
+                    Excel.Worksheet xlWorkSheet;
+                    Excel.Range range;
+
+                    xlApp = new Excel.ApplicationClass();
+                    xlWorkBook = xlApp.Workbooks.Open(dlg.FileName, 0, true, 5, "", "", true, Microsoft.Office.Interop.Excel.XlPlatform.xlWindows, "\t", false, false, 0, true, 1, 0);
+                    xlWorkSheet = (Excel.Worksheet)xlWorkBook.Worksheets.get_Item(1);
+                    range = xlWorkSheet.UsedRange;
+
+                    for (int rCnt = 2; rCnt <= range.Rows.Count; rCnt++)
+                    {
+                        if (Public.Get_String((range.Cells[rCnt, 3] as Excel.Range).Value2) == "")
+                        {
+                            continue;
+                        }
+                        decimal _ma_to = Public.Get_Decimal((range.Cells[rCnt, 1] as Excel.Range).Value2);
+                        string _ma_nv = Public.Get_String((range.Cells[rCnt, 2] as Excel.Range).Value2).ToUpper().Trim();
+                        string _ma_cd = Public.Get_String((range.Cells[rCnt, 3] as Excel.Range).Value2).ToUpper().Trim();
+                        string _ma_vt = Public.Get_String((range.Cells[rCnt, 4] as Excel.Range).Value2).ToUpper().Trim();
+                        string _ma_nh = Public.Get_String((range.Cells[rCnt, 5] as Excel.Range).Value2).ToUpper().Trim();
+                        decimal _so_luong = Public.Get_Decimal((range.Cells[rCnt, 6] as Excel.Range).Value2);
+                        string _dvt = Public.Get_String((range.Cells[rCnt, 7] as Excel.Range).Value2).ToUpper().Trim();
+                        decimal _thoi_gian = Public.Get_Decimal((range.Cells[rCnt, 8] as Excel.Range).Value2);
+
+                        DataRow drAdd = dsDmnangsuatct.Tables["Dmnangsuatct"].NewRow();
+                        drAdd["ma_to"] = _ma_to;
+                        drAdd["ma_nv"] = _ma_nv;
+                        drAdd["ten_nv"] = Public.Get_String(Sql.GetValue(Public.cn, "hrns", "ten_nv", "ma_nv = '" + _ma_nv + "'"));
+                        drAdd["ma_cd"] = _ma_cd;
+                        drAdd["ma_nh"] = _ma_nh;
+                        drAdd["ma_vt"] = _ma_vt;
+                        drAdd["ten_vt"] = Public.Get_String(Sql.GetValue(Public.cn, "dmvt", "ten_vt", "ma_vt = '" + _ma_vt + "'"));
+                        drAdd["ten_thao_tac"] = Public.Get_String(Sql.GetValue(Public.cn, "mfdmthaotac", "ten_thao_tac", "ma_thao_tac = '" + _ma_cd + "'")); ;
+                        drAdd["thoi_gian"] = _thoi_gian;
+                        drAdd["so_luong"] = _so_luong;
+                        drAdd["dvt"] = _dvt;
+                        dsDmnangsuatct.Tables["Dmnangsuatct"].Rows.Add(drAdd);
+                    }
+
+                    System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("vi-VN");
+                    xlWorkBook.Close(true, null, null);
+                    xlApp.Quit();
+
+                    releaseObject(xlWorkSheet);
+                    releaseObject(xlWorkBook);
+                    releaseObject(xlApp);
+                    UpdataTotal();
+                    UpdataTotalct();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.ToString());
+                }
+            }
+        }
+----------------------------------------------------------------------------------------------------------------------
+Thu vien chuyen so thanh tru 
+
+ham doc so 
+    static String NumWordsWrapper(double n, string ma_nt)
+        {
+            string words = "";
+            double intPart;
+            double decPart = 0;
+            if (n == 0)
+                return "zero";
+            try
+            {
+                string ad = n.ToString();
+                string[] splitter = n.ToString().Split('.');
+                intPart = double.Parse(splitter[0]);
+                if (splitter.Length > 1)
+                {
+                                       if (splitter[1].Length > 1)// tlv
+                    {
+                            decPart = double.Parse(splitter[1]);
+                    }
+                    else
+                    {
+                        decPart = double.Parse(splitter[1]) * 10;
+                    }
+                    // tlv
+                }
+            }
+            catch
+            {
+                intPart = n;
+            }
+
+            words = NumWords(intPart);
+
+            if (decPart > 0)
+            {
+                if (ma_nt == "USD")
+                {
+                    if (words != "")
+                        words += " dollars and ";
+                    int counter = decPart.ToString().Length;
+                    switch (counter)
+                    {
+                        case 1:
+                            if (ma_nt == "USD")
+                            {
+                                words += NumWords(decPart * 10) + " cents";
+                            }
+                            else
+                                words += NumWords(decPart) + " tenths";
+                            break;
+                        case 2:
+                            if (ma_nt == "USD")
+                            {
+                                words += NumWords(decPart) + " cents";
+                            }
+                            else
+                                words += NumWords(decPart) + " hundredths";
+                            break;
+                        case 3: words += NumWords(decPart) + " thousandths"; break;
+                        case 4: words += NumWords(decPart) + " ten-thousandths"; break;
+                        case 5: words += NumWords(decPart) + " hundred-thousandths"; break;
+                        case 6: words += NumWords(decPart) + " millionths"; break;
+                        case 7: words += NumWords(decPart) + " ten-millionths"; break;
+                    }
+                }
+                else
+                {
+                    if (words != "")
+                        words += " and ";
+                }
+            }
+
+            else
+                words += " dollars only";
+            return UppercaseFirst(words);
+        }
+
+
+
+-- ham chuyen so thanh chu
+
+     static String NumWords(double n) //converts double to words
+        {
+            string[] numbersArr = new string[] { "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen" };
+            string[] tensArr = new string[] { "twenty", "thirty", "fourty", "fifty", "sixty", "seventy", "eighty", "ninty" };
+            string[] suffixesArr = new string[] { "thousand", "million", "billion", "trillion", "quadrillion", "quintillion", "sextillion", "septillion", "octillion", "nonillion", "decillion", "undecillion", "duodecillion", "tredecillion", "Quattuordecillion", "Quindecillion", "Sexdecillion", "Septdecillion", "Octodecillion", "Novemdecillion", "Vigintillion" };
+            string words = "";
+
+            bool tens = false;
+
+            if (n < 0)
+            {
+                words += "negative ";
+                n *= -1;
+            }
+
+            int power = (suffixesArr.Length + 1) * 3;
+
+            while (power > 3)
+            {
+                double pow = System.Math.Pow(10, power);
+                if (n >= pow)
+                {
+                    if (n % pow > 0)
+                    {
+                        words += NumWords(System.Math.Floor(n / pow)) + " " + suffixesArr[(power / 3) - 1] + ", ";
+                    }
+                    else if (n % pow == 0)
+                    {
+                        words += NumWords(System.Math.Floor(n / pow)) + " " + suffixesArr[(power / 3) - 1];
+                    }
+                    n %= pow;
+                }
+                power -= 3;
+            }
+            if (n >= 1000)
+            {
+                if (n % 1000 > 0) words += NumWords(System.Math.Floor(n / 1000)) + " thousand, ";
+                else words += NumWords(System.Math.Floor(n / 1000)) + " thousand";
+                n %= 1000;
+            }
+            if (0 <= n && n <= 999)
+            {
+                if ((int)n / 100 > 0)
+                {
+                    words += NumWords(System.Math.Floor(n / 100)) + " hundred";
+                    n %= 100;
+                }
+                if ((int)n / 10 > 1)
+                {
+                    if (words != "")
+                        words += " ";
+                    words += tensArr[(int)n / 10 - 2];
+                    tens = true;
+                    n %= 10;
+                }
+
+                if (n < 20 && n > 0)
+                {
+                    if (words != "" && tens == false)
+                        words += " ";
+                    words += (tens ? "-" + numbersArr[(int)n - 1] : numbersArr[(int)n - 1]);
+                    n -= System.Math.Floor(n);
+                }
+            }
+
+            return words;
+        }
+
+---------------------------------------------------------------------------------
+sét vị trí cột trong báo cáo xoay
+    private static void MoveColumns()
+        {
+            int last_index = Public.Get_Int(odirformlib.grdLookUp.Cols.Count) - 1;
+            odirformlib.grdLookUp.Cols["ky_ten"].Move(last_index);
+        }
+Đặt trong main gọi trong hàm ReportProcdưới hàm Merge
+  private static void ReportProc(int nIndex)
+        {
+            //Thiet lap mau tren bao cao
+            //Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 3, true, false, System.Drawing.Color.LightGreen);
+            Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 4, true, false, System.Drawing.Color.PeachPuff);
+            Merge(odirformlib.grdLookUp);
+            MoveColumns();
+            switch (nIndex)
+            {
+                case 0:
+                    break;
+
+------------------------------------------
+bản chất của lookup là select bảng theo điều kiện thêm vào
+====================================
+hàm lấy ngày giờ hiện tại trong postgres :
+SELECT CURRENT_TIME;
+Result: 14:39:53.662522-05
+
+SELECT CURRENT_DATE;
+Result: 2001-12-23
+
+SELECT CURRENT_TIMESTAMP;
+Result: 2001-12-23 14:39:53.662522-05
+
+SELECT CURRENT_TIMESTAMP(2);
+Result: 2001-12-23 14:39:53.66-05
+
+SELECT LOCALTIMESTAMP;
+Result: 2001-12-23 14:39:53.662522
+=====--------------------------------------------------
+vi du cuttom hien thi dinh dang ngay thangs. đầu vào của thư viện ct:  
+ static FADateTime txtNgay_ct1 = new FADateTime();            
+txtNgay_ct1.FormatType = C1.Win.C1Input.FormatTypeEnum.CustomFormat;
+            txtNgay_ct1.CustomFormat = "dd/MM/yyy";
+-----------------------------------------------------------
+vd lấy dữ liệu từ sql đổ vào bảng 
++ "' AND ma_bp = '" + _ma_bp + "'AND ma_kyluong = '" + _ma_kyluong + "' AND thuviec_yn = '" + _checktvyn + "' ";
+            if (frmList.M_MODE == 'E')
+            {
+                s = "SELECT  ma_kyluong, ma_bp, ngay_hl1 FROM Dmnangsuat WHERE ngay_hl1 <> '" + Public.Convert_to_en_US(_ngay_hl1) + "' AND ma_bp = '" + _ma_bp + "'AND ma_kyluong = '" + _ma_kyluong + "' AND thuviec_yn = '"+_checktvyn+"' ";
+            }
+            DataSet dsPrint = new DataSet();
+            Sql.SQLRetrieve(Public.cn, s, "Dmnangsuat", ref dsPrint);
+            DataTable dt = dsPrint.Tables["Dmnangsuat"];
+            DataView dv = new DataView(dt);
+-------------------------------------------------------------
+Khai báo xuống dòng ở grid
+// Wrap trong grid
+trong ReportProc thêm:
+using C1.Win.C1FlexGrid;
+
+c1FlexGrid1.Styles[CellStyleEnum.Normal].WordWrap = true;
+c1FlexGrid1.AllowResizing = AllowResizingEnum.Rows;
+c1FlexGrid1.AutoSizeRows();
+------------------------------------------------
+đổi tên cột trong mẫu báo cáo, 
+private static void doitencot()
+        {
+            string caption = string.Empty;
+            string s_caption = String.Empty;
+            int i = 1;
+            foreach (Column col in odirformlib.grdLookUp.Cols)
+            {
+                if (col.Caption.Contains("_Số lượng"))
+                {
+                    col.Caption = col.Caption.Replace(col.Caption, "CH" + i);
+                    i++;
+                }
+
+            }
+        }
+=============================
+ví dụ ần hiện cột trong voucher dưới grid chi tiết
+                voucherlib.voucherlib.ListGridDetails[0].Cols["ngay_nhan_hang"].Visible = false;
+                voucherlib.voucherlib.ListGridDetails[0].Cols["ngay_tra_hang"].Visible = false;
+                voucherlib.voucherlib.ListGridDetails[0].Cols["ma_sp"].Visible = false;
+
+giá trị visibo này tương tự trong bảng voucher
+-----------------------------------------------------------
+
+refres lại giá trị bảng voucher và grid ;
+voucherlib.voucherlib.Refresh();
+---------------------------------------
+lấy stt_rec theo số tự sinh tại phiếu hiện tại: 
+ _curGridRow["stt_rec"] = voucherlib.voucherlib.curVoucherID;
+------------------------------------------------------------
+vi Vẽ mẫu in excel:
+
+ DataSet dsPrint = new DataSet();
+                string _stt_rec = Public.Get_String(voucherlib.voucherlib.drvPh["stt_rec"]);
+                string _ngay_ct = Public.Convert_to_en_US(Public.Get_DateTime(voucherlib.voucherlib.drvPh["ngay_ct"]));
+                string strSQL = "select *  from inctkk1c ('" + _stt_rec + "','" + _ngay_ct + "')";
+                FA.Global.Sql.SQLRetrieve(Public.cn, strSQL, "inctkk1c", ref dsPrint);
+				string fileReport	=	Public.Get_String(excellib.dtReports.Rows[frmPrint.cboMau_Bao_Cao.SelectedIndex]["rep_file"]);
+
+                fileReport = Public.Rpts_Path + fileReport + ".xlsx";
+                excellib rptlib = new excellib(frmPrint, fileReport, dsPrint);
+                excellib.drReportData = voucherlib.voucherlib.drvPh.Row;
+
+
+                string _t_date = string.Format("Ngày kiểm kê: {0}", (Public.Get_DateTime(voucherlib.voucherlib.drvPh["ngay_ct"])).ToString("dd/MM/yyyy"));
+                excellib.SetReportVar("t_date",_t_date);
+	
+
+                excellib.SetReportVars(Public.SysID);
+				
+				int _so_lien	=	Public.Get_Int(frmPrint.txtSo_Lien.Value);
+				if (dlgResult == DialogResult.Yes)
+                    excellib.ShowReport();
+				else
+                    excellib.PrintReport(_so_lien);
+			}
+-----------------------------------------------------------------
+ voucherlib.voucherlib.ListGridDetails[0].Cols["sl_duyet"].AllowEditing = true;
+                    voucherlib.voucherlib.ListGridDetails[0].Cols["app_yn_i"].AllowEditing = true;
+
+                    foreach (DataRowView _drv in voucherlib.voucherlib.ListDataViews[1])
+                    {
+                        _drv["app_yn_i"] = 0;
+                        _drv["sl_duyet"] = 0; 
+                    }
+                    voucherlib.voucherlib.ListGridDetails[0].Refresh();
+thay đổi trạng thái của số lượng duyệt, trạng thái checkbox khi thay đổi trạng thái chứng từ -> thêm vào sự kiện thay đổi combobox..
+
+-----------------------------------------------------
+Kiểm tra trùng mã grid :
+
+
+ case "ma_nv":
+                    if (_ma_nv == Public.Get_String(_grid.Tag))
+                        return;
+                    LookUpLib luMa_nv = new LookUpLib(_ma_nv, true, true,_where, "hrns");
+                    if (luMa_nv.drvReturn != null)
+                    {
+                        _ma_nv = Public.Get_String(luMa_nv.drvReturn["ma_nv"]);
+                        //dvPranttct.RowFilter = "ma_kyluong ='" + Public.Get_String(frmList.drv["ma_kyluong"]) + "'";
+                        foreach (DataRowView _drv in dvPranttct)
+                        {
+                            if (dvPranttct.Count > 1)
+                            {
+                                string ss = Public.Get_String(_drv["ma_nv"]);
+                                if (ss.Equals(_ma_nv) && _drv != _curGridRow)
+                                {
+                                    MessageBox.Show("Đã có thông tin của nhân viên này. \nHãy chọn nhân viên khác.", "Thông báo");
+                                    return;
+                                }
+                            }
+                        }
+                        _curGridRow["ma_nv"] = _ma_nv = Public.Get_String(luMa_nv.drvReturn["ma_nv"]);
+                        _curGridRow["ten_nv"] = luMa_nv.drvReturn["ten_nv"];
+                    }
+                    break;
+------------------------------------------------------------------
+
+ĐỔI TÊN CỘT TRONG BÁO CÁO:
+
+- Trong DirMain.cs
+		private static void doitencot()
+        {
+            string caption = string.Empty;
+            string s_caption = String.Empty;
+            foreach (Column col in odirformlib.grdLookUp.Cols)
+            {
+				// đổi 2020-02-02 => 02/02/2020
+                if (col.Caption.Contains("_")) // tiêu đề cột GrididH
+                {
+                    caption = col.Caption.ToString();
+                    string a = caption;
+                    char b = '_';
+                    int vitri = a.IndexOf(b);
+                    string _ten = caption.Substring(0, vitri);
+                    string ten1 = _ten.Substring(0, 4);
+                    string ten2 = _ten.Substring(5, 2);
+                    string ten3 = _ten.Substring(8, 2);
+                    s_caption = ten3 + "/" + ten2 + "/" + ten1;
+                    col.Caption = col.Caption.Replace(col.Caption, s_caption);
+                }
+            }
+        }
+		
+		private static void ReportProc(int nIndex)
+        {
+            //Thiet lap mau tren bao cao
+			Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 3, true, false, System.Drawing.Color.LightGreen);
+            doitencot();
+			...
+		}
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+----TÔ LẠI MÀU TRONG MẪU IN SAU KHI LỌC DỮ LIỆU.
+- b1 :  thêm câu lệnh sau vào hàm showreport dưới câu lệnh gọi hàm bôi màu : 
+		odirformlib.grdLookUp.AfterDataRefresh += grdLookUp_AfterDataRefresh;
+	
+	- b2: Trong hàm grdLookUp_AfterDatarefresh thêm câu lệnh bôi màu :
+			static void grdLookUp_AfterDataRefresh(object sender, System.ComponentModel.ListChangedEventArgs e)
+			{
+			
+				Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 3, true, false, System.Drawing.Color.Yellow);
+			}
+---------------------------------------------------------------------
+Check long khoang nhap
+
+ void gridDmdgkhct_AfterEdit(object sender, C1.Win.C1FlexGrid.RowColEventArgs e)
+        {
+            FA.Form.Control.FAGrid _grid = sender as FA.Form.Control.FAGrid;
+            DataRowView _curGridRow = _grid.Rows[e.Row].DataSource as DataRowView;            
+            switch (_grid.Cols[e.Col].Name.ToLower())
+            {
+                case "gt_tu":
+                    foreach(DataRowView _drv in dvDmdgkhct)
+                    {
+                        decimal _gt_tu = Public.Get_Decimal(_drv["gt_tu"]);
+                        decimal _gt_den = Public.Get_Decimal(_drv["gt_den"]);
+                        decimal _check = Public.Get_Decimal(_curGridRow["gt_tu"]);
+                        decimal _check1 = Public.Get_Decimal(_curGridRow["gt_den"]);
+
+                        //if (_gt_tu == _check)
+                        //{
+                        //    _curGridRow["gt_tu"] = 0;
+                        //    return;
+                        //}
+
+                        if(_check > _gt_tu && _check < _gt_den)
+                        {
+                            MessageBox.Show("Giá trị không được lồng nhau!");
+                            _curGridRow["gt_tu"] = 0;
+                            return;
+                        }
+                    }
+                    break;
+                case"gt_den":
+                    foreach (DataRowView _drv in dvDmdgkhct)
+                    {
+                        decimal _gt_tu = Public.Get_Decimal(_drv["gt_tu"]);
+                        decimal _gt_den = Public.Get_Decimal(_drv["gt_den"]);
+                        decimal _check = Public.Get_Decimal(_curGridRow["gt_tu"]);
+                        decimal _check1 = Public.Get_Decimal(_curGridRow["gt_den"]);
+                        if (_check1 >= _gt_tu && _check1 <= _gt_den)
+                        {
+                            if (_check == _gt_tu && _check1 == _gt_den)
+                            {
+                                return;
+                            }
+                            else
+                            {
+                                MessageBox.Show("Giá trị không được lồng nhau!");
+                                _curGridRow["gt_den"] = 0;
+                                return;
+                            }
+                        }
+                        if (_check1 < _check)
+                        {
+                            _curGridRow["gt_den"] = 0;
+                            return;
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }

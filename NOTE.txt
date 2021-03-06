@@ -1,0 +1,513 @@
+﻿Bảng lưu thông tin các cột các bảng
+select table_name from schema_columns 
+------------------------------------------------
+	1:	THƯ VIỆN LẤY TÊN CÔNG TY, ĐỊA CHỈ
+
+FA.Global.Licence
+------------------------------------------------
+
+Lấy dữ liệu ở command line arguments trong property: 
+DirMain.cCodeSelected -> VD trả về  HAD.
+------------------------------------------------
+
+bug xuyên: 
+property: command line dat sys id cua code can bug vao
+Bung xuyên thư viện: Chứng từ
+Property: Command line Đặt MA_CT phiếu cần bung vào. Đường dẫn thai tên file exe  chứng từ cần bug vào.
+------------------------------------------------
+Bảng userrights lưu use đăng nhập : kiếm tra user đang đăng nhập trong code : dùng 
+	Session.CurrUserId lấy ra mã user. 
+================================================
+chú ý khi thay đổi dữ liệu trên frmlist phải để beginedit và endedit: vd thay doi tag;
+		frmList.dv[i].BeginEdit();
+                frmList.dv[i]["tag"] = lType;
+                frmList.dv[i].EndEdit();
+================================================
+	2:	XỬ LÝ DỮ LIỆU TRONG CODE.
+
+lấy 1 thuộc tính của bảng
+
+ (string)Sql.GetValue(Public.cn, "dmvv", "ma_vv", "ma_vv = '" + ma_vv_i.Trim() + "'")
+------------------------------------------------
+User thường xem Báo cáo không xem, xuất exel ... được -> Kiểm tra type Trong command: Danh mục-> D Báo cáo-> R : Chứng từ ->V
+------------------------------------------------
+
+	CÁCH SỬ DỤNG DATAROW : VD
+VD: 
+DataRow _drv = Sql.GetRow(Public.cn,"dmctdf","ma_ct = 'RQ2' and ma_dvcs = '"+Session.DfUnit+"'");
+            if (_drv != null)
+            {
+                _curGridRow["ma_ck"] = Public.Get_String(_drv["ma_ck"]);
+                _curGridRow["ma_thue"] = Public.Get_String(_drv["ma_thue"]);
+            }
+
+1	:LẤY DỮ LIỆU VÀO DATASET
+VD:
+ strSQL = "SELECT * FROM ct46a WHERE stt_rec ='" + voucherlib.voucherlib.curVoucherID + "' limit 1";
+                Sql.SQLRetrieve(Public.cn, strSQL, "ct46a", ref dsDataSet);
+                dtCt = dsDataSet.Tables["ct46a"];
+                dvCt = new DataView(dtCt);
+                foreach (DataRowView drv in dvCt)
+                {
+                    ma_kh_i = Public.Get_String(drv["ma_kh_i"]);
+                    ten_kh_i = Public.Get_String(Sql.SQLExecuteScalar(Public.cn,"select * from ten_kh from dmkh where ma_kh='" + ma_kh_i + "'"));
+                    ten_tk = Public.Get_String(drv["ten_tk_nh"]);
+                }
+------------------------------------------------
+
+SETDATARELATION Thư viện.
+VD
+	doDmKh.SetDataRelation("ten_nvbh", "ten_nvbh", "dmnvbh", "ma_nvbh", "dmnvbh", "ma_nvbh", "dmkh", null, null, false);
+------------------------------------------------
+
+Các bước tạo SETDATARELATION tự tạo
+
+trong hàm đọc tạo bảng đọc và chứa dữ liệu bảng cần thêm.
+Có dữ liệu bảng bảng a và b
+1: add 2 bảng cùng 1 dataset 
+2: tạo dataretion mới 
+VD: 2 bảng dtDmVv và dtDmcang
+dsDataSet.Tables.Add(dtDmVv);
+dsDataSet.Tables.Add(dtDmcang);
+
+DataRelation redmcangdi = new DataRelation("dmcang_di", dsDataSet.Tables["Dmcang"].Columns["ma_cang"],  dsDataSet.Tables["DmVv"].Columns["ma_cangdi"], false);
+
+dmcang_di: Tên dataretion : tùy đặt
+dsDataSet.Tables["Dmcang"].Columns["ma_cang"] : Bảng cha nguồn dữ liệu 
+dsDataSet.Tables["DmVv"].Columns["ma_cangdi"]: Bảng con cần lấy dữ liệu ở bảng cha
+
+false: dữ liệu khóa bảng con liên kết với cha có thể trống
+true:  ko được trống
+3: add dataretion vào dataset
+dsDataSet.Relations.Add(redmcangdi);
+
+4: Thêm cột cần lấy thêm dữ liệu vào bảng con : Bảng con đã có mã cần lấy thêm tên từ bảng cha.
+VD :  dtDmVv.Columns.Add("ten_cangdi", typeof(string));
+
+5 : Add thêm dữ liệu: 
+ foreach (DataRow _drv in dtDmVv.Rows)
+                {
+                    try
+                    {
+                        string _ten_cangdi = Public.Get_String(_drv.GetParentRow(redmcangdi)["ten_cang"]);
+                        _drv["ten_cangdi"] = _ten_cangdi;
+                    }
+                    catch
+                    {
+                        _drv["ten_cangdi"] = "";
+                    }
+		}
+------------------------------------------------
+
+XỬ LÝ TIỀN KHI IMPORT : 
+VD:
+Kgi Import, Import vào trường tiền NT trước. Tiền = tiền NT * tỷ giá 
+Khi mã NT = mã NT0 (tiền hoạch toán) tiền = tiền NT = tiền IMport 
+ drAdd["tien_nt"] = FA.Global.Math.Round( _tien, FA.Global.Options.Int("M_ROUND_TIEN_NT"));
+                                drAdd["tien"] = FA.Global.Math.Round(_tien * voucherlib.voucherlib.Ty_Gia, Options.Int("M_ROUND_TIEN"));
+
+                                if (voucherlib.voucherlib.Ma_Nt == Public.Get_String(FA.Global.Options.Str("M_MA_NT0")))
+                                {
+                                    drAdd["tien_nt"] = FA.Global.Math.Round(_tien, Options.Int("M_ROUND_TIEN"));
+                                    drAdd["tien"] = FA.Global.Math.Round(_tien, Options.Int("M_ROUND_TIEN")); 
+                                }
+-----------------------------------------------
+	3:	XỬ LÝ CODE
+-----------------------------------------------
+Dataset		Datatable 	Dataview
+
+Xử lý copy dữ liệu copy giá trị trong dataview
+   //Them cot de phan trang
+            dtCt.Columns.Add("page", typeof(int));
+            foreach (DataRow dr in dtCt.Rows)
+            {
+                dr.BeginEdit();
+                dr["page"] = 1;
+                dr.EndEdit();
+            }
+            dtCt.AcceptChanges();
+
+            DataTable dtCtPage2 = dtCt.Copy();
+            foreach (DataRow dr in dtCtPage2.Rows)
+            {
+                dr.BeginEdit();
+                dr["page"] = 2;
+                dr.EndEdit();
+            }
+            dtCtPage2.AcceptChanges();
+
+            if (Public.Get_Int(cbomau_in.SelectedValue) != 0 && Public.Get_Int(cbomau_in.SelectedValue) != 1)
+            {
+                DataTable dtCtPage3 = dtCt.Copy();
+                foreach (DataRow dr in dtCtPage3.Rows)
+                {
+                    dr.BeginEdit();
+                    dr["page"] = 3;
+                    dr.EndEdit();
+                }
+                dtCtPage3.AcceptChanges();
+                dtCt.Merge(dtCtPage3);
+            }
+            
+
+            dtCt.Merge(dtCtPage2);
+            //dtCt.Merge(dtCtPage3);
+            dtCt.AcceptChanges();
+
+            dsPrint = new DataSet();
+            dsPrint = dsDataSet;	
+-----------------------------------------------
+Loại bỏ dấy , trong chuỗi
+	VD : 
+		string _edit_byword = String.Join("", _by_word.Split( ','));// Loại bỏ dấy , trong chuỗi
+-----------------------------------------------
+
+Ví dụ mẫu in chọn giá trị in checkbox
+ví dụ về imporrt file excel trong chứng từ dùng fun có json. :fun inctkk1 dự án GTA.
+-----------------------------------------------
+1 Thêm dữ liệu vào combobox: 
+	Cách 1: Khai báo trong message:
+	Cách 2:
+	Gán dữ liệu vào trong comnobox bằng cách thêm vào bảng .
+	 private void Grid_DBindingCbo()
+       	 {
+           	 DataTable dt_loai_dh = new DataTable();
+            	dt_loai_dh.Columns.Add("id", typeof(string));
+            	dt_loai_dh.Columns.Add("name", typeof(string));
+            	switch (Public.M_LAN) // kiểm tra ngôn ngữ 
+           	 {
+               		case "V":
+                   	dt_loai_dh.Rows.Add("1", "1 - Hàng MP");
+                   	dt_loai_dh.Rows.Add("2", "2 - Hàng NM");
+                   	break;
+                case "E":
+                    dt_loai_dh.Rows.Add("1", "1 - MP goods");
+                    dt_loai_dh.Rows.Add("2", "2 - NM goods");
+                    break;
+                default:
+                    break;
+            }
+            txtLoai_lsx.DisplayMember = "name"; .. set hien thị combobox là name
+            txtLoai_lsx.ValueMember = "id";// set cot valu là id 
+            txtLoai_lsx.DataSource = dt_loai_dh;
+            txtLoai_lsx.SelectedIndex = 0;
+            
+        }
+	txtLoai_lsx.selectedvalues.tostring(): lấy dữ liệu values 
+	txtloai_lsx.selectedindex: lấy dòng chọn
+-----------
+Cách 2 :
+Truyền giá trị cho cbb:
+VD: 
+	Filterlib.AddComboboxValue(cbbGroup, Public.SysID, "002", ref ds, "Group"); 
+	-> Khai báo value combobox trong bảng sysoption bên data_sys
+-----------------------------------------------
+
+Thêm vào combobox bằng câu lệnh sql
+  LookUpLib luMa_dvcs = new LookUpLib(this.txtMa_dvcs, lblTen_dvcs, false, true, "dmdvcs");
+            string sql = "SELECT status AS id, CASE WHEN '" + Public.M_LAN + "' = 'V' THEN statusname ELSE statusname2 END AS name FROM dmttct WHERE ma_ct = 'PD1' AND status IN('1','2','3') ORDER BY status";
+            SoreportLib.Control.Init_Combobox(txtStatus, Public.syscn, "dmttct", sql, "1");
+
+-----------------------------------------------
+
+LookUp
+lookup 
+VD:
+ string _ma = Public.Get_String(txtMa_may.Value);
+            string _oldma = Public.Get_String(txtMa_may.OldValue);
+
+            if (String.Compare(_ma, _oldma) != 0)
+            {
+                LookUpLib luhttt = new LookUpLib(_ma, true, true, "1=1", "dmmay");
+                if (luhttt.drvReturn != null)
+                {
+                    txtMa_may.Value = Public.Get_String(luhttt.drvReturn["ma_may"]);
+                    txtTen_may.Value = Public.Get_String(luhttt.drvReturn["ten_may"]);
+                   
+                }
+            }
+
+Selectlib 
+VD:
+            Selectlib slTk_no = new Selectlib(txtTk_No, "dmtk");
+            frmList.drv["tk_no"] = txtTk_No.Value = slTk_no.ListReturn;
+-----------------------------------------------
+
+Sét Vị Trí Cho cột Trong Báo Cáo Xoay
+
+    private static void MoveColumns()
+        {
+            int last_index = Public.Get_Int(odirformlib.grdLookUp.Cols.Count) - 1;
+            odirformlib.grdLookUp.Cols["ky_ten"].Move(last_index);
+        }
+Đặt trong main gọi trong hàm ReportProcdưới hàm Merge
+  private static void ReportProc(int nIndex)
+        {
+            //Thiet lap mau tren bao cao
+            //Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 3, true, false, System.Drawing.Color.LightGreen);
+            Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 4, true, false, System.Drawing.Color.PeachPuff);
+            Merge(odirformlib.grdLookUp);
+            MoveColumns();
+            switch (nIndex)
+            {
+                case 0:
+                    break;
+-----------------------------------------------
+
+Ghim cột:
+VD
+	odirformlib.grdLookUp.AllowFreezing = AllowFreezingEnum.Both;
+           	 odirformlib.grdLookUp.Cols.Frozen = 8;
+            	odirformlib.grdLookUp.Rows.Frozen = 1;
+-----------------------------------------------
+
+ĐỔI TÊN CỘT TRONG BÁO CÁO:
+VD:
+- Trong DirMain.cs
+		private static void doitencot()
+        {
+            string caption = string.Empty;
+            string s_caption = String.Empty;
+            foreach (Column col in odirformlib.grdLookUp.Cols)
+            {
+				// đổi 2020-02-02 => 02/02/2020
+                if (col.Caption.Contains("_")) // tiêu đề cột GrididH
+                {
+                    caption = col.Caption.ToString();
+                    string a = caption;
+                    char b = '_';
+                    int vitri = a.IndexOf(b);
+                    string _ten = caption.Substring(0, vitri);
+                    string ten1 = _ten.Substring(0, 4);
+                    string ten2 = _ten.Substring(5, 2);
+                    s_caption = ten3 + "/" + ten2 + "/" + ten1;
+                    col.Caption = col.Caption.Replace(col.Caption, s_caption);
+                }
+            }
+        }
+		
+		private static void ReportProc(int nIndex)
+        {
+            //Thiet lap mau tren bao cao
+			Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 3, true, false, System.Drawing.Color.LightGreen);
+            doitencot();
+			...
+		}
+-----------------------------------------------
+
+----TÔ LẠI MÀU TRONG MẪU IN SAU KHI LỌC DỮ LIỆU.
+- b1 :  thêm câu lệnh sau vào hàm showreport dưới câu lệnh gọi hàm bôi màu : 
+		odirformlib.grdLookUp.AfterDataRefresh += grdLookUp_AfterDataRefresh;
+	
+	- b2: Trong hàm grdLookUp_AfterDatarefresh thêm câu lệnh bôi màu :
+			static void grdLookUp_AfterDataRefresh(object sender, System.ComponentModel.ListChangedEventArgs e)
+			{
+			
+				Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 3, true, false, System.Drawing.Color.Yellow);
+			}
+-----------------------------------------------
+
+Định dạng ngày tháng trong thư viện 
+VD:
+			static FADateTime txtNgay_ct1 = new FADateTime();            
+			txtNgay_ct1.FormatType = C1.Win.C1Input.FormatTypeEnum.CustomFormat;
+           		txtNgay_ct1.CustomFormat = "dd/MM/yyy";
+-----------------------------------------------
+
+Khai Báo Xuống Dòng Trong Grid
+// Wrap trong grid
+trong ReportProc thêm:
+using C1.Win.C1FlexGrid;
+
+c1FlexGrid1.Styles[CellStyleEnum.Normal].WordWrap = true;
+c1FlexGrid1.AllowResizing = AllowResizingEnum.Rows;
+c1FlexGrid1.AutoSizeRows();
+-----------------------------------------------
+
+refres lại giá trị bảng voucher và grid ;
+voucherlib.voucherlib.Refresh();
+
+-----------------------------------------------
+Kiểm tra trùng mã grid :
+
+
+ case "ma_nv":
+                    if (_ma_nv == Public.Get_String(_grid.Tag))
+                        return;
+                    LookUpLib luMa_nv = new LookUpLib(_ma_nv, true, true,_where, "hrns");
+                    if (luMa_nv.drvReturn != null)
+                    {
+                        _ma_nv = Public.Get_String(luMa_nv.drvReturn["ma_nv"]);
+                        //dvPranttct.RowFilter = "ma_kyluong ='" + Public.Get_String(frmList.drv["ma_kyluong"]) + "'";
+                        foreach (DataRowView _drv in dvPranttct)
+                        {
+                            if (dvPranttct.Count > 1)
+                            {
+                                string ss = Public.Get_String(_drv["ma_nv"]);
+                                if (ss.Equals(_ma_nv) && _drv != _curGridRow)
+                                {
+                                    MessageBox.Show("Đã có thông tin của nhân viên này. \nHãy chọn nhân viên khác.", "Thông báo");
+                                    return;
+                                }
+                            }
+                        }
+                        _curGridRow["ma_nv"] = _ma_nv = Public.Get_String(luMa_nv.drvReturn["ma_nv"]);
+                        _curGridRow["ten_nv"] = luMa_nv.drvReturn["ten_nv"];
+                    }
+                    break;
+-----------------------------------------------
+
+
+
+===============================================
+
+	4: 	NOTE KHAI BÁO
+-----------------------------------------------
+
+CHECK ĐIỀU KIỆN TRONG KHAI BÁO ImportExcel:
+
+valid = 0: ko check, 1 check ko ton tai: 2 check đã tồn tại.
+field_ref: tên khóa cần check tại bảng check
+table_ref: tên bảng kiểm tra. 
+-----------------------------------------------
+
+ Cột user_id0, user_id2 đổi thành tên thì khai báo lại trong bảng thành user_name0, user_id2.
+-----------------------------------------------
+
+
+===============================================
+	5: NOTE CretalRepost
+-----------------------------------------------
+
+	Thêm các dữ liệu logo ... vào dataset : Hoặc thêm cột logo vào PH
+reportlib.drReportData = voucherlib.voucherlib.drvPh.Row;
+-----------------------------------------------
+
+TÔ MÀU MẪU IN Excel : file poctdg1.elsx dự án hafuco.
+-----------------------------------------------
+format kiểu ngày hiển thị dạng: trong crytal: vidu: CACTPT1 : hafuco                                 Ngày …… tháng …… năm 201….  
+====================================================================
+ép kiểu số sang chữ trong crytalrepost : CSTR({field1})
+
+------------------------------------------------
+Tự động xuống dòng trong mẫu Excel
+<#Row Height(Autofit)>
+------------------------------------------------
+Khi thêm mới file xsd lấy dữ liệu từ 2 hoặc nhiều fun -> không tạo được xsd từ nhiều fun ->tạo xsd cho fun trả về dữ liệu nhiều nhất-> thêm mới table vào xsd chứa các cột trả về của các fun còn lại.
+------------------------------------------------
+
+Tão mẫu in với nhiều trang hiển thị khách nhau.
+VD: Mẫu in phiếu xuất kho bán hàng: SOCTHDA sông lam.
+
+Bước 1: Thêm cột group. Copy dữ liệu nhân bản lên tương đương với số phiếu cần vẽ.
+Bước 2: Trong crytalreport tạo set group theo cột mới thêm. click vào sestion mới chọn new page khi qua group mới.
+
+------------------------------------------------
+Export excel.
+
+private void btnExport_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                SaveFileDialog sa = new SaveFileDialog();
+                sa.Filter = "Excel |*.xls";
+                sa.AddExtension = true;
+                if (sa.ShowDialog() == DialogResult.OK)
+                {
+                    gridMfkhsx1.SaveExcel(sa.FileName, C1.Win.C1FlexGrid.FileFlags.IncludeFixedCells);
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+
+
+--------------------------------------
+Kiểm tra phát sinh thư viện với: 
+            if (!Processlib.CheckEdit.SrProcess(voucherlib.voucherlib.curVoucherID, voucherlib.voucherlib.Ma_Ct, ref ret_val))
+            {
+                string _Mss = "Đã có phát sinh liên quan, không thể xóa được?";
+                Msg.Alert(_Mss);
+                return false;
+            }
+
+ if (!Processlib.CheckEdit.SrProcess(voucherlib.voucherlib.curVoucherID, voucherlib.voucherlib.Ma_Ct, ref ret_val))
+            {
+                string _Mss = "Đã có phát sinh liên quan!\n Bạn có muốn sửa không?";
+                DialogResult dlg = MessageBox.Show(_Mss, "Cảnh báo!", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+                if (dlg == DialogResult.No)
+                    return false;
+            }
+----------------------------------------
+Phân quyền sử dụng chức năng chứng từ.
+  BitArray MenuItemsNotCopy = new BitArray(new bool[15] { true, false, true, true, true, true, true, true, true, true, true, true, true, true, true });
+
+Phân quyền sử dụng chức nănng danh mục.
+Phân quyền:
+                        bool edit = Security.CheckRights("edit");
+                        bool del = Security.CheckRights("del");
+                        bool add = Security.CheckRights("add");
+                        bool print = Security.CheckRights("print");
+                        formMain.MenuItemsEnable = new BitArray(new bool[11] { add, edit, del, print, true, true, print, true, true, true, true });
+----------------------------------------
+Xử lý lấy sự kiện từ nút xuất excel tự động . 
+
+Thêm vào ShowReport(): 
+odirformlib.menuEventHandler = new EventHandler(mnuItems_Click);
+                     odirformlib.toolbarButtonClickEventHandler = new ToolBarButtonClickEventHandler
+
+private static void mnuItems_Click(object sender, EventArgs e)
+        {
+            MenuItem clickItem = sender as MenuItem;
+            if (clickItem.Index == 7)// số thứ tự click
+                PrintExcel();
+            else
+            
+                odirformlib.ClickItem(clickItem.Index);
+        }
+
+        private static void tbFile_ButtonClick(object sender, ToolBarButtonClickEventArgs e)
+        {
+            ToolBarButton buttonClick = e.Button;
+            if (buttonClick.ImageIndex == 7) PrintExcel();
+            else
+                odirformlib.ClickItem(buttonClick.ImageIndex);
+        }
+------------------------------------------
+Tô màu báo cáo trong bản cũ
+Thêm vào showreport:
+        odirformlib.Load += new EventHandler(odirformlib_Load);
+// Hàm tô màu
+        private static void odirformlib_Load(object sender, EventArgs e)
+        {
+            Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 0, true, false, System.Drawing.Color.LightPink);
+            Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 1, true, false, System.Drawing.Color.LightGreen);
+            Smbclib.ReportBrowse.SetGridRow(odirformlib.grdLookUp, "sysorder", 2, true, false, System.Drawing.Color.LightBlue);
+
+            odirformlib.grdLookUp.Cols["sysorder"].Visible = false;
+            odirformlib.grdLookUp.Cols["stt0"].Visible = false;
+            odirformlib.grdLookUp.Cols["ma_kh"].Width = 80;
+            odirformlib.grdLookUp.Cols["ma_kh"].Caption = "Mã khách";
+            odirformlib.grdLookUp.Cols["ten_kh"].Width = 250;
+            odirformlib.grdLookUp.Cols["ten_kh"].Caption = "Tên khách";
+
+            for (int i = 1; i < odirformlib.grdLookUp.Cols.Count; i++)
+            {
+                if (odirformlib.grdLookUp.Cols[i].DataType.ToString().Equals("System.Decimal"))
+                {
+                    odirformlib.grdLookUp.Cols[i].Format = Options.Str("FORMAT_TIEN");
+                    odirformlib.grdLookUp.Cols[i].Caption = odirformlib.grdLookUp.Cols[i].Caption.ToUpper();
+                }
+            }
+            
+        }
+
+-------------------------------
+
+Cài tool tự động post lại các phiếu 
+code : AutoexcuteSQL (VD : Du an KG)
+fun : autoexecutesql()
+fun check post: checkpost()
+Cài task scheduler

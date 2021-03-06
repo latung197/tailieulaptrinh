@@ -1,0 +1,722 @@
+﻿select create_schema_info();
+select createdbcolumns();
+==================================================================================
+select * from command where sysid = '';
+select * from message where form ='' ;
+select * from listinfo where code = '';
+select * from gridinfo where gridid ='';
+select * from reports where form ='';
+select * from repinfo where form ='';
+select * from vouchergridinfo where gridid ='';
+
+==========================================================================================
+
+hai cách lấy dữ liệu trực tiếp từ db
+cách 1 :
+ string ma_thung = Public.Get_String(Sql.GetValue(Public.cn, "dmthung", "ma_thung", "ma_vt = '"+ _ma_vt+"'")); //;str2 = "select ma_thung from dmthung a where a.ma_vt= _ma_vt ;";
+cách 2: 
+ string str2 = "select ma_thung from dmthung a where a.ma_vt= '"+ _ma_vt +"'" ; 
+string ma_thung2 = Public.Get_String(Sql.SQLExecuteScalar ( Public.cn, str2)); 
+      ----------------------------------------------------------------------
+              
+-------------------------------------------------------------------------------------------------
+các lưu ý SQL: 
+a int := 0 // gán giá trị a = 0 
+int:: b // ép kiểu cho b = int .
+DISTINCT : xoa bang ghi chung nhau.
+===========================================================================================================================================
+các lưu ý Code:
+với các ô text : #NB# ko được để trống , #DIE# ko được đổi mã nếu là khóa.
+1: Danh mục một bảng: 
+các bước :
+1.1: Tạo bảng => chạy hai câu lệnh gọi fun: 
+1.2: Khai báo dữ liệu các bảng: 
+command : chú ý sysid, command
+listinfo : khai báo định dạng hiển thị các cột hiển thị trên fom : cột cfield lưu khóa chính bảng, ctable tên bảng, coderef valuref khai báo đổi mã, nefielddf khai bao cho phep ke thua, noprdf khai bao cho phep long ma.
+message : khai báo hiển thị các lbl trên form;
+lookup : chú ý cột code: tên cần khi chạy: lfield : tên khóa :
+luôn phải tạo chức năng đổi mã bằng khai báo trong listinfo:
+
+2: Danh mục hai bảng: 
+1 : tạo hai bảng cha và con liên kết với nhau bằng một khóa chung.
+2 : tạo trigger xóa dữ liệu của hai bảng:
+3 : khai báo bảng listinfo coderef valuref khai bao cho phep doi ma, tablecef kiem tra ma da phat sinh tai bang khac chua neu co khong cho phep xoa, khai bao #DIE# khong cho phep thay doi ma neu da phat sinh.
+4 : lu y qua trinh luu, khi luu du lieu tao vong fo lu ma khoa tu bang cha xuong bang con:
+khai bao bang sysorder: Hien thi o combobox trong mau import va syseeceldef danh sach cac cot import trong mau import  	
+
+báo cáo : 
+báo cáo thường: 
+1: tạo fun :
+2: khai báo các bảng cmmand, message, report, repinfo, gridinfo:
+lưu ý khi muốn gộp cột khai báo cột merger trong report và cọt mert trong gridinfo:
+3: tô màu các cột sau khi load dữ liệu lên: reportproc
+
+in dữ liệu:
+thêm dữ liệu vào crytan: 
+cách 1 : khi lấy dữ liệu từ data trong bussnis sét thêm cột dữ liệu mới vào dataset bằng 
+thêm cột mới vào xsd update lại trong rpt rồi kéo ra như các cột bình thường: 
+cách 2 : tron hàm prin có them dữ liệu vào pramrter  bằng reportlip.setreportvar ();
+
+-- Báo cáo xoay: 
+chú ý tạo fun
+========================================================================================================================
+- Tao domain: 
+create domain ud_ma as varchar(20)
+create domain  ud_ten as varchar(50)
+create domain ud_status as varchar(1)
+create domain  ud_ngay as date 
+create domain ud_time as time
+create domain ud_float as float
+create domain ud_char128 as varchar(128)
+create domain ud_char20 as varchar(20)
+create domain ud_smallint as smallint
+
+
+
+-- ví dụ tạo trigger them vào dmgiact sau khi thêm vào dmgia
+
+create on replace function themdmgiact()
+returns trigger as
+$body$
+begin
+ if TG_OP = 'insert'
+ then
+
+if not exists(select 1 dmgiaban where ma_vt = new.ma_vt and ma_bang_gia = new.na_bang_gia) // kiem tra tồn tại chưa .
+then
+insert into dmgiaban(ma_bang_gia,ma_vt , ten_vt,ten_vt2 ,ma_thue ,thue_suat ,ngay_bd ,ngay_kt ,date0 ,time0 ,user_id0 ,status ,date2 ,time2 ,user_id2 ,
+  ma_dvcs ,ma_nv_duyet ,app_yn ,loai_gia ,sl_min ,gia ,gia0 ,gio_bd ,gio_kt,active ,ma_dc_gia ) select 	
+end if;
+ 
+ end if;
+end;
+$body$
+language plphsql;
+
+---------------------------------------- vidu trigger xóa: xóa dữ liệu dmloivtct7 sau khi xóa dmloivt7 
+
++ Quy ước đặt tên: fun : viết liền . trigger : thêm _ : xoadmvt == xoa_dmvt
+--- câu lệnh tạo funtrigger
+create or replace function xoadmloivtct7 ()
+returns trigger as
+$body$
+begin
+ if TG_OP = 'DELETE'
+ then
+if exists (select 1 from dmloivtct7 where ma_vt = old.ma_vt)
+then
+delete from dmloivtct7 where ma_vt = old.ma_vt;
+end if;
+ end if;
+ return old;
+end ;
+$body$
+language plpgsql; 
+
+
+-------------- câu lệnh tạo trigger
+create trigger xoa_dmloivtct7
+after delete 
+on dmloivt7
+for each row
+execute procedure xoa_dmloivtct7()
+------------
+
+
+select * from dmloivtct7
+
+delete from dmloivt7 where ma_vt = 'ATP'
+
+------------------------------------------------------------------------------------------------------
+-- tao function 
+--- hàm trả về 1 số nguyên
+
+--drop function random_numero(int);
+
+CREATE OR REPLACE FUNCTION random_numero(amount smallint)
+RETURNS integer AS
+$BODY$
+declare 
+_so_sv int := 0; -- gan gia tri mac dinh cho tham so _so_sv
+
+begin 
+
+	select count(ma_sv) from sinhvien into _so_sv;
+	return _so_sv;
+	--return select count(ma_sv) from sinhvien;
+	end;
+
+$BODY$
+LANGUAGE plpgsql;
+
+select random_numero(0::smallint);-- cau lenh thuc thi function
+
+-- function tra ve mot type: (tra ve mot bang du lieu)
+
+--select  * from lophoc
+
+--select * from sinhvien
+
+--- tạo hàm trả về ds học sinh: ten_lop, ma_hs, ten_sn, gioi_tinh, ngay_sinh;
+
+-- DROP TYPE get_dmkh_return;
+
+
+------------------------------------------------------------------------------------------------------
+
+--select  * from lophoc
+
+--select * from sinhvien
+
+--- tạo hàm trả về ds học sinh: ten_lop, ma_hs, ten_sn, gioi_tinh, ngay_sinh;
+
+-- DROP TYPE get_dmkh_return;
+
+-- cú pháp tạo type 
+CREATE TYPE get_ttsv_return AS
+   (   
+    ten_lop ud_ten,
+    ma_sv ud_ma,
+    ten_sv ud_ten,
+    gio_tinh ud_status,
+    ngay_sinh ud_ngay
+    );
+ALTER TYPE get_ttsv_return
+  OWNER TO postgres;
+
+-- cau lenh sua type : (tuong tu nhu sua mot bang)
+alter type get_ttsv_return add attribute ma_lop ud_ma; 
+
+-- cú pháp tạo function
+CREATE OR REPLACE FUNCTION get_ttsv(masv character varying )
+RETURNS setof get_ttsv_return AS
+$BODY$
+declare 
+r get_ttsv_return; -- r là dữ liệu kiểu type đã tạo phía trên.
+
+begin 
+	DROP TABLE IF EXISTS bang_tam;
+	create temp table bang_tam as
+	select ''::ud_ten ten_lop, ma_sv, ten_sv, gioi_tinh, ngay_sinh ,ma_lop from sinhvien  --'':: ud_ten ten_lop -- tạo cột với kiểu ud_ma tên cột ten_lop trong bang_tam sử dụng trong trong việc thêm dữ liệu
+	--inner join lophoc on sinhvien.ma_lop = lophoc.ma_lop
+	 where ma_sv = masv;
+	update bang_tam a set ten_lop=b.ten_lop from lophoc b where a.ma_lop = b.ma_lop;
+	
+	for r in select * from bang_tam
+	loop
+	return next r;-- du liệu đổ vào r phải trùng kiểu và thứ tự như trên type .
+	end loop ;
+
+	DROP TABLE IF EXISTS bang_tam;
+	return ;
+end;
+$BODY$
+ LANGUAGE plpgsql VOLATILE
+  COST 100
+  ROWS 1000;
+ALTER FUNCTION get_ttsv( character varying)
+  OWNER TO postgres;
+
+select *from get_ttsv('1');
+
+--------------------------------
+
+drop type get_thongtinhocphi_return
+/*create type get_thongtinhocphi_return as(
+ma_sv ud_ma,
+ten_sv ud_ten,
+ten_lop ud_ten,
+hoc_phi ud_float,
+tien_da_dong ud_float,
+tien_con_lai ud_float
+
+);
+ALTER TYPE get_thongtinhocphi_return
+  OWNER TO postgres;
+*/
+
+
+--drop FUNCTION thongtinhocphi( character varying,character varying, float)
+  create or replace function thongtinhocphi(ma_sinh_vien character varying, ma_lop_hoc character varying, so_tien_da_dong float)  
+  returns setof get_thongtinhocphi_return as
+  $body$
+  declare 
+  r get_thongtinhocphi_return;
+  begin
+	DROP TABLE IF EXISTS bang_tam1;
+	DROP TABLE IF EXISTS bang_tam;
+	
+		create temp table bang_tam as 
+		select ma_sv, ten_sv , ''::ud_ten ten_lop, null::ud_float tien_hoc_phi, null::ud_float tien_da_dong, null::ud_float tien_con_lai,ma_lop
+		from sinhvien 
+		where case when (ma_sinh_vien='') then  1=1 else ma_sv = ma_sinh_vien end and case when(ma_lop_hoc ='') then 1=1 else ma_lop = ma_lop_hoc end;
+			--and   exists (select 1 from hocphi where ma_sv = hocphi.ma_sv and so_tien_da_dong = hocphi.tien_da_dong);
+
+	
+		/*if(ma_sinh_vien='')
+		then
+		create temp table bang_tam1 as
+		select ma_sv, sum(tien_hoc_phi) as tong_hoc_phi , sum(tien_da_dong) as tong_da_dong ,sum(tien_hoc_phi - tien_da_dong)  as tong_con_lai from hocphi 		  group by ma_sv;
+		else 
+		create temp table bang_tam1 as
+		select ma_sv, sum(tien_hoc_phi) as tong_hoc_phi , sum(tien_da_dong) as tong_da_dong ,sum(tien_hoc_phi - tien_da_dong)  as tong_con_lai from hocphi 		  where ma_sv = ma_sinh_vien
+		group by ma_sv;
+		end if;
+		*/
+		
+		create temp table bang_tam1 as
+		select ma_sv, sum(tien_hoc_phi) as tong_hoc_phi , sum(tien_da_dong) as tong_da_dong ,sum(tien_hoc_phi - tien_da_dong)  as tong_con_lai from hocphi
+		where exists (select 1 from bang_tam where bang_tam.ma_sv = hocphi.ma_sv) 
+		group by ma_sv;
+		
+		update bang_tam set ten_lop = lophoc.ten_lop from lophoc where bang_tam.ma_lop = lophoc.ma_lop;
+		update bang_tam set tien_hoc_phi = bang_tam1.tong_hoc_phi, tien_da_dong = bang_tam1.tong_da_dong, tien_con_lai = bang_tam1.tong_con_lai from 		    bang_tam1 where bang_tam.ma_sv = bang_tam1.ma_sv;
+		--update bang_tam set tien_con_lai = bang_tam1.tong_hoc_phi - bang_tam1.tong_da_dong from bang_tam1 where bang_tam1.ma_sv=bang_tam.ma_sv;
+
+		
+		for r in select * from bang_tam where case when (so_tien_da_dong=0) then 1=1 else tien_da_dong = so_tien_da_dong end
+		   loop
+		   return next r;
+		   end loop;
+		
+		
+	DROP TABLE IF EXISTS bang_tam1;
+	DROP TABLE IF EXISTS bang_tam;
+   return;
+  end;
+  $body$	
+   LANGUAGE plpgsql VOLATILE
+  COST 100
+  ROWS 1000;
+ALTER FUNCTION thongtinhocphi( character varying,character varying, float)
+  OWNER TO postgres;
+
+  select * from thongtinhocphi('1','1',0)
+
+----------------------------------------------------------------------------------------------------------------
+--drop type get_thongtinvt_return;
+/*create type get_thongtinvt_return as(
+sysorder ud_smallint,
+sysprint ud_smallint,
+systotal ud_smallint,
+stt ud_smallint,
+ma_vt ud_ma,
+ten_vt ud_ten,	
+dvt ud_dvt,
+nh_vt1 ud_ma,
+ten_nh_vt1 ud_ten,
+nh_vt2 ud_ma,
+ten_nh_vt2 ud_ten,
+nh_vt3 ud_ma,
+ten_nh_vt3 ud_ten,
+nh_vt4 ud_ma,
+ten_nh_vt4 ud_ten,
+nh_vt5 ud_ma,
+ten_nh_vt5 ud_ten,
+so_luong ud_float,
+tien_nhap ud_float );
+
+ALTER TYPE get_thongtinvt_return
+  OWNER TO postgres; */
+--drop function thongtinvt(character varying,character varying,character varying,character varying,character varying,character varying,character varying);
+
+create or replace function thongtinvt(mavt character varying,nhomvt1 character varying,nhomvt2 character varying,nhomvt3 character varying,nhomvt4 character varying,nhomvt5 character varying, nhomtheo character varying )
+returns setof get_thongtinvt_return as
+$body$
+declare 
+r get_thongtinvt_return;
+str_SQL character varying;
+
+begin
+
+	DROP TABLE IF EXISTS bang_tam ;
+	DROP TABLE IF EXISTS bang_tam2 ;
+
+--tao bang tra ve
+	create temp table bang_tam as 
+	select 5::ud_smallint sysorder, 0:: ud_smallint sysprint, 0::ud_smallint systotal, ma_vt, ten_vt,dvt, nh_vt1,''::ud_ten ten_nh1,nh_vt2,''::ud_ten ten_nh2,nh_vt3,''::ud_ten ten_nh3,nh_vt4,''::ud_ten ten_nh4,nh_vt5,''::ud_ten ten_nh5,null::ud_float so_luong_nhap, null::ud_float tien_nhap from dmvt where case when (mavt ='') then 1=1 else ma_vt = mavt end ;
+--
+
+	update bang_tam set ten_nh1 = dmnhvt.ten_nh from dmnhvt where bang_tam.nh_vt1 = dmnhvt.ma_nh and loai_nh = 1;
+	update bang_tam set ten_nh2 = dmnhvt.ten_nh from dmnhvt where bang_tam.nh_vt2 = dmnhvt.ma_nh and loai_nh = 2;
+	update bang_tam set ten_nh3 = dmnhvt.ten_nh from dmnhvt where bang_tam.nh_vt3 = dmnhvt.ma_nh and loai_nh = 3;
+	update bang_tam set ten_nh4 = dmnhvt.ten_nh from dmnhvt where bang_tam.nh_vt4 = dmnhvt.ma_nh and loai_nh = 4;
+	update bang_tam set ten_nh5 = dmnhvt.ten_nh from dmnhvt where bang_tam.nh_vt5 = dmnhvt.ma_nh and loai_nh = 5;
+-- bang tam2 
+	create temp table bang_tam2 as
+	select  ma_vt,sum(sl_nhap) as soluongnhap, sum(tien_nhap) as tiennhap from ct70 where exists (select 1 from bang_tam where bang_tam.ma_vt = ct70.ma_vt)
+group by ma_vt ;
+
+--
+	update bang_tam set so_luong_nhap = bang_tam2.soluongnhap,tien_nhap = bang_tam2.tiennhap from bang_tam2 where bang_tam.ma_vt = bang_tam2.ma_vt ;
+
+	str_SQL:='insert into bang_tam(ma_vt, so_luong_nhap,'||nhomtheo||',tien_nhap) select  '||nhomtheo||' as ma_vt, sum(so_luong_nhap) so_luong_nhap, nh_vt1, sum(tien_nhap) tien_nhap from bang_tam group by '||nhomtheo||'; ';
+	
+	if(nhomtheo <> '') then
+	
+		execute str_SQL;
+	end if;
+	
+
+
+	-- if(nhomtheo <> '') then
+-- 	
+-- 	if(nhomtheo='nh_vt1') then
+-- 	insert into bang_tam(ma_vt, so_luong_nhap, nh_vt1, tien_nhap)
+-- 		select  nh_vt1 as ma_vt, sum(so_luong_nhap) so_luong_nhap, nh_vt1, sum(tien_nhap) tien_nhap
+-- 		from bang_tam
+-- 		group by nh_vt1;
+-- 	elsif(nhomtheo='nh_vt2') then
+-- 	insert into bang_tam(ma_vt, so_luong_nhap, nh_vt2, tien_nhap)
+-- 		select nh_vt2 as ma_vt, sum(so_luong_nhap) so_luong_nhap, nh_vt2, sum(tien_nhap) tien_nhap
+-- 		from bang_tam
+-- 		group by nh_vt2;
+-- 		elsif(nhomtheo='nh_vt3') then
+-- 	insert into bang_tam(ma_vt, so_luong_nhap, nh_vt3, tien_nhap)
+-- 		select nh_vt3 as ma_vt, sum(so_luong_nhap) so_luong_nhap, nh_vt3, sum(tien_nhap) tien_nhap
+-- 		from bang_tam
+-- 		group by nh_vt3;
+-- 		elsif(nhomtheo='nh_vt4') then
+-- 	insert into bang_tam(ma_vt, so_luong_nhap, nh_vt4, tien_nhap)
+-- 		select  nh_vt4 as ma_vt, sum(so_luong_nhap) so_luong_nhap, nh_vt4, sum(tien_nhap) tien_nhap
+-- 		from bang_tam
+-- 		group by nh_vt4;
+-- 		elsif(nhomtheo='nh_vt5') then
+-- 	insert into bang_tam(ma_vt, so_luong_nhap, nh_vt5, tien_nhap)
+-- 		select 'Nhom vat tu 5' ma_vt, sum(so_luong_nhap) so_luong_nhap, nh_vt5, sum(tien_nhap) tien_nhap
+-- 		from bang_tam
+-- 		group by nh_vt5;
+-- 
+-- 		end if;
+-- 		
+-- 	end if;
+--
+for r in select * from bang_tam order by nh_vt1 , sysorder , ma_vt -- where
+-- 	case when(nhomvt1 = '') then 1=1 else bang_tam.nh_vt1=nhomvt1 end and
+-- 	case when(nhomvt2 = '') then 1=1 else bang_tam.nh_vt2=nhomvt2 end and
+-- 	case when(nhomvt3 = '') then 1=1 else bang_tam.nh_vt3=nhomvt3 end and
+-- 	case when(nhomvt4 = '') then 1=1 else bang_tam.nh_vt4=nhomvt4 end and 
+-- 	case when(nhomvt5 = '') then 1=1 else bang_tam.nh_vt5=nhomvt5 end 
+	
+loop
+return next r;
+end loop;
+-- 
+	--DROP TABLE IF EXISTS bang_tam ;
+	--DROP TABLE IF EXISTS bang_tam2 ;
+return;		
+end;
+
+
+$body$
+
+   LANGUAGE plpgsql VOLATILE
+  COST 100
+  ROWS 1000;
+ALTER FUNCTION thongtinvt(character varying,character varying,character varying,character varying,character varying,character varying,character varying)
+  OWNER TO postgres;
+
+  select * from thongtinvt('','','','','','','nh_vt1');
+
+-------------------------------------------
+tuong tu tren co sua
+--drop type get_thongtinvt_return;
+/*create type get_thongtinvt_return as(
+sysorder ud_smallint,
+sysprint ud_smallint,
+systotal ud_smallint,
+stt ud_smallint,
+ma_vt ud_ma,
+ten_vt ud_ten,	
+dvt ud_dvt,
+nh_vt1 ud_ma,
+ten_nh_vt1 ud_ten,
+nh_vt2 ud_ma,
+ten_nh_vt2 ud_ten,
+nh_vt3 ud_ma,
+ten_nh_vt3 ud_ten,
+nh_vt4 ud_ma,
+ten_nh_vt4 ud_ten,
+nh_vt5 ud_ma,
+ten_nh_vt5 ud_ten,
+so_luong ud_float,
+tien_nhap ud_float );
+
+ALTER TYPE get_thongtinvt_return
+  OWNER TO postgres; */
+--drop function thongtinvt(character varying,character varying,character varying,character varying,character varying,character varying,character varying);
+
+create or replace function thongtinvt(mavt character varying,nhomvt1 character varying,nhomvt2 character varying,nhomvt3 character varying,nhomvt4 character varying,nhomvt5 character varying, nhomtheo character varying )
+returns setof get_thongtinvt_return as
+$body$
+declare 
+r get_thongtinvt_return;
+str_SQL character varying;
+tennhom character varying;
+_stt int := 1;
+
+begin
+
+	DROP TABLE IF EXISTS bang_tam ;
+	DROP TABLE IF EXISTS bang_tam2 ;
+
+--tao bang tra ve
+	create temp table bang_tam as 
+	select 5::ud_smallint sysorder, 0:: ud_smallint sysprint, 0::ud_smallint systotal,0::ud_smallint stt, ma_vt, ten_vt,dvt, nh_vt1,''::ud_ten ten_nh1,nh_vt2,''::ud_ten ten_nh2,nh_vt3,''::ud_ten ten_nh3,nh_vt4,''::ud_ten ten_nh4,nh_vt5,''::ud_ten ten_nh5,null::ud_float so_luong_nhap, null::ud_float tien_nhap from dmvt where case when (mavt ='') then 1=1 else ma_vt = mavt end ;
+--
+
+	
+-- bang tam2 
+	create temp table bang_tam2 as
+	select  ma_vt,sum(sl_nhap) as soluongnhap, sum(tien_nhap) as tiennhap from ct70 where exists (select 1 from bang_tam where bang_tam.ma_vt = ct70.ma_vt)
+	group by ma_vt ;
+
+	update bang_tam set so_luong_nhap = bang_tam2.soluongnhap,tien_nhap = bang_tam2.tiennhap from bang_tam2 where bang_tam.ma_vt = bang_tam2.ma_vt ;
+	
+
+-- 	if(nhomtheo = 'nh_vt1') then 
+-- 	tennhom := 'ten_nh1';
+-- 	elsif(nhomtheo = 'nh_vt2') then 
+-- 	tennhom := 'ten_nh2';
+-- 	elsif(nhomtheo = 'nh_vt3') then 
+-- 	tennhom := 'ten_nh3';
+-- 	elsif(nhomtheo = 'nh_vt4') then 
+-- 	tennhom := 'ten_nh4';
+-- 	elsif(nhomtheo = 'nh_vt5') then 
+-- 	tennhom := 'ten_nh5';
+-- 	end if;
+-- 	
+
+-- 
+-- 	str_SQL:='insert into bang_tam(ma_vt,'||nhomtheo||', so_luong_nhap,tien_nhap,ten_vt,'||tennhom||')
+-- 	select  '||nhomtheo||' as ma_vt,'||nhomtheo||', sum(so_luong_nhap)as so_luong_nhap, sum(tien_nhap) as tien_nhap, max('||tennhom||') as ten_vt,max('||tennhom||') from bang_tam group by '||nhomtheo||'; ';
+
+
+	str_SQL:='insert into bang_tam(sysorder,systotal,ma_vt,'||nhomtheo||', so_luong_nhap,tien_nhap)
+	select 2::ud_smallint sysorder ,0:: ud_smallint systotal,'||nhomtheo||' as ma_vt,'||nhomtheo||', sum(so_luong_nhap)as so_luong_nhap, sum(tien_nhap) as tien_nhap from bang_tam group by '||nhomtheo||'; ';
+
+
+	
+	if(nhomtheo <> '') then
+	
+		execute str_SQL;
+	end if;
+
+	update bang_tam set ten_nh1 = dmnhvt.ten_nh from dmnhvt where bang_tam.nh_vt1 = dmnhvt.ma_nh and loai_nh = 1;
+	update bang_tam set ten_nh2 = dmnhvt.ten_nh from dmnhvt where bang_tam.nh_vt2 = dmnhvt.ma_nh and loai_nh = 2;
+	update bang_tam set ten_nh3 = dmnhvt.ten_nh from dmnhvt where bang_tam.nh_vt3 = dmnhvt.ma_nh and loai_nh = 3;
+	update bang_tam set ten_nh4 = dmnhvt.ten_nh from dmnhvt where bang_tam.nh_vt4 = dmnhvt.ma_nh and loai_nh = 4;
+	update bang_tam set ten_nh5 = dmnhvt.ten_nh from dmnhvt where bang_tam.nh_vt5 = dmnhvt.ma_nh and loai_nh = 5;
+
+	update bang_tam a set ten_vt = b.ten_nh from dmnhvt b where sysorder = 2 and ma_vt = b.ma_nh;
+	update bang_tam a set ten_vt = 'chua phan nhom' where sysorder =2 and ma_vt ='';
+
+	insert into bang_tam(sysorder,systotal,ma_vt, so_luong_nhap,tien_nhap)
+	select 1::ud_smallint sysorder ,0:: ud_smallint systotal,'Tong cong' as ma_vt, sum(so_luong_nhap)as so_luong_nhap, sum(tien_nhap) as tien_nhap from bang_tam where sysorder = 5;
+--
+for r in select * from bang_tam order by nh_vt1 , sysorder , ma_vt -- where
+-- 	case when(nhomvt1 = '') then 1=1 else bang_tam.nh_vt1=nhomvt1 end and
+-- 	case when(nhomvt2 = '') then 1=1 else bang_tam.nh_vt2=nhomvt2 end and
+-- 	case when(nhomvt3 = '') then 1=1 else bang_tam.nh_vt3=nhomvt3 end and
+-- 	case when(nhomvt4 = '') then 1=1 else bang_tam.nh_vt4=nhomvt4 end and 
+-- 	case when(nhomvt5 = '') then 1=1 else bang_tam.nh_vt5=nhomvt5 end 
+	
+loop
+if(r.sysorder=5) then
+r.stt = _stt;
+_stt = _stt+1;
+else 
+r.stt = null;
+_stt = 1;
+end if ;
+return next r;
+end loop;
+-- 
+	
+	--DROP TABLE IF EXISTS bang_tam ;
+	--DROP TABLE IF EXISTS bang_tam2 ;
+return;	
+end;
+
+
+$body$
+
+   LANGUAGE plpgsql VOLATILE
+  COST 100
+  ROWS 1000;
+ALTER FUNCTION thongtinvt(character varying,character varying,character varying,character varying,character varying,character varying,character varying)
+  OWNER TO postgres;
+
+  select * from thongtinvt('','','','','','','nh_vt1');
+---------------------------------------------------------------------------------------------
+
+
+-- Function: kiemtra7(date, date, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying)
+
+-- DROP FUNCTION kiemtra7(date, date, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying);
+
+CREATE OR REPLACE FUNCTION kiemtra7(ngay0 date, ngay2 date, makho character varying, makh character varying, mavt character varying, nhvt1 character varying, nhvt2 character varying, nhvt3 character varying, nhvt4 character varying, nhvt5 character varying, madvcs character varying)
+  RETURNS SETOF get_kiemtra7_return AS
+$BODY$
+declare 
+r get_kiemtra7_return ;
+_stt smallint :=1 ;
+
+begin
+	 
+	create temp table bang_tam as 
+	select 5 as sysorder, 0 as sysprint, 0 as systotal,0 stt, a.ma_vt, '':: character varying ten_vt , sum(sl_xuat) as so_luong, 
+	(case when sum(sl_xuat) <> 0 then sum(tien_xuat)/sum(sl_xuat) else 0 end) as gia, 
+	(case when sum(sl_xuat) <> 0 then sum(tien_xuat) else 0 end) as thanh_tien
+
+	from ct70 as a
+	--left join dmvt b on a.ma_vt = b.ma_vt
+	where a.nxt = 2
+	and case when (ngay0 <> '1900-01-01') then ngay_ct >= ngay0 else 1=1 end
+	and case when (ngay2 <> '1900-01-01') then ngay_ct <= ngay2 else 1=1 end
+	and inlist (a.ma_vt, mavt)
+	and inlist (a.ma_kho, makho)
+	and inlist (a.ma_kh , makh)	
+	
+	and exists (select 1 from dmvt b where a.ma_vt = b.ma_vt 
+	and case when (nhvt1 <> '') then inlist (b.nh_vt1 , nhvt1) else 1=1 end
+	and case when (nhvt2 <> '') then inlist (b.nh_vt2 , nhvt2) else 1=1 end
+	and case when (nhvt3 <> '') then inlist (b.nh_vt3 , nhvt3) else 1=1 end
+	and case when (nhvt4 <> '') then inlist (b.nh_vt4 , nhvt4) else 1=1 end
+	and case when (nhvt5 <> '') then inlist (b.nh_vt5 , nhvt5) else 1=1 end
+	and case when (madvcs <> '') then inlist (b.ma_dvcs, madvcs ) else 1=1 end
+	)
+	group by a.ma_vt;
+	
+	update bang_tam a set ten_vt = b.ten_vt from dmvt as b where a.ma_vt = b.ma_vt ;
+
+	insert into bang_tam (sysorder, ten_vt, thanh_tien) select 3, 'Tổng cộng', sum(thanh_tien) as thanh_tien from bang_tam  where sysorder =5;
+for r in select * from bang_tam 
+
+loop 
+
+
+if (r.sysorder = 5) then 
+r.stt = _stt;
+_stt = _stt +1;
+else
+r.stt = null;
+end if;
+return next r;
+end loop;
+
+
+	drop table bang_tam;
+	return ;
+end;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100
+  ROWS 1000;
+ALTER FUNCTION kiemtra7(date, date, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying)
+  OWNER TO postgres;
+
+  ------------------------------------------------------------------------------------------------------
+
+
+
+-- Function: songay(date, date)
+
+-- DROP FUNCTION songay(date, date);
+
+CREATE OR REPLACE FUNCTION songay(pdate0 date, pdate2 date)
+  RETURNS integer AS
+$BODY$
+declare 
+kq0 int :=0 ;
+kq1 int :=0 ;
+
+begin
+
+	
+	select count(*) from date where period_type = 'D'
+	and period_no = 7
+	and period_start >= pdate0 and period_end <= pdate2
+	and not exists (select 1 from dmngayle where period_start >= tungay and  period_end <= denngay) into kq0;
+
+	select count(*) + sum (denngay - tungay) from dmngayle where tungay >= pdate0 and denngay <= pdate2 into kq1; 
+	
+	return kq0+kq1;
+end ;
+ $BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION songay(date, date)
+  OWNER TO postgres;
+  select * from songay('2020-06-01'::date, '2020-06-20'::date )
+
+-- select * from dmngayle limit 20
+-- select * from date limit 1
+  -- Bài số 1: Tính số ngày nghỉ chứa trong khoảng ngày tùy chọn:
+-- + Ngày nghỉ là ngày chủ nhật
+-- + Khai báo một khoảng ngày nghỉ định trước. 
+-- 
+-- Ví dụ: 
+-- Anh có 2 bảng khai báo: 
+-- + Ngày nào là ngày chủ nhật: select * from date where period_type = 'D' anh period_no = 7 nó sẽ ra các ngày là ngày chủ nhật.
+-- + Danh mục khai báo từ ngày 30/04/2020 đến 01/05/2020 là ngày nghỉ
+-- Tính trong khoảng ngày từ ngày : 15/04/2020 đến 15/05/2020 có bao nhiêu ngày nghỉ.
+
+==========================================================================================================================
+
+-- Function: ketqua()
+-- Type: get_trave_return
+
+-- DROP TYPE get_trave_return;
+
+CREATE TYPE get_trave_return AS
+   (sysorder smallint,
+    systotal smallint,
+    sysprint smallint,
+    stt ud_stt_rec,
+    ma ud_ma,
+    ten ud_ten);
+ALTER TYPE get_trave_return
+  OWNER TO postgres;
+
+============================================
+
+-- DROP FUNCTION ketqua();
+
+CREATE OR REPLACE FUNCTION ketqua()
+  RETURNS SETOF get_trave_return AS
+$BODY$
+declare 
+r  get_trave_return;
+stt_1 int := 1;
+stt_2 int := 0;
+begin
+
+create temp table bang_tam  as select 5 sysorder,0 systotal, 0 sysprint, 0 stt, ma_tv, ten_tv , ma_nh from thanhvien ;
+
+insert into bang_tam  select 3,0,0,0, ma_nh as ma_tv, '' as ten_tv, ma_nh from nhom ;
+
+update bang_tam a set ten_tv = ten_nh from nhom b where a.ma_tv = b.ma_nh; 
+
+for r in select sysorder, systotal, sysprint,stt, ma_tv, ten_tv from bang_tam order by  ma_nh,sysorder
+   loop
+if (r.sysorder = 3) then
+	r.stt = stt_1;
+	stt_1 = stt_1 +1;
+	stt_2 = 1;
+	else r.stt = stt_2;
+	stt_2 = stt_2 +1;
+	end if; 
+   
+   return next r;
+   end loop;
+   drop TABLE if exists bang_tam; 
+   return ;
+end ;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100
+  ROWS 1000;
+ALTER FUNCTION ketqua()
+  OWNER TO postgres;
+  
